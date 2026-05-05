@@ -762,25 +762,46 @@ function render() {
   })
 
   area.querySelectorAll('.cell').forEach(el => {
-    el.addEventListener('mousedown', e=>{
+    // Touch handler (mobile): runs before simulated mouse events, prevents them
+    el.addEventListener('touchend', e=>{
       e.preventDefault()
       const idx = +el.dataset.idx
+      const touch = e.changedTouches[0]
       const rect = el.getBoundingClientRect()
-      const relY = e.clientY - rect.top
+      const relY = touch.clientY - rect.top
 
-      // Save and exit lyrics editing if active
       if (editingLyricsIdx >= 0) {
         const lEl = area.querySelector(`.cell-lyrics[data-idx="${editingLyricsIdx}"]`)
         if (lEl) song.cells[editingLyricsIdx].lyrics = lEl.innerText.replace(/\n$/, '') || null
         editingLyricsIdx = -1
       }
 
-      // Bottom 10px → start lyrics editing for this cell
       if (relY >= rect.height - 10) {
-        commitEdit()
-        editingLyricsIdx = idx
-        render()
-        return
+        commitEdit(); editingLyricsIdx = idx; render(); return
+      }
+
+      if (editingIdx === idx) return
+      commitEdit()
+      // First tap → select; tap on already-selected → edit (keyboard appears since we're in touchend)
+      if (focusIdx === idx) { startEdit(idx); return }
+      focusIdx = idx; anchorIdx = -1; render()
+    })
+
+    // Mouse handler (desktop only — touchend's preventDefault stops this on mobile)
+    el.addEventListener('mousedown', e=>{
+      e.preventDefault()
+      const idx = +el.dataset.idx
+      const rect = el.getBoundingClientRect()
+      const relY = e.clientY - rect.top
+
+      if (editingLyricsIdx >= 0) {
+        const lEl = area.querySelector(`.cell-lyrics[data-idx="${editingLyricsIdx}"]`)
+        if (lEl) song.cells[editingLyricsIdx].lyrics = lEl.innerText.replace(/\n$/, '') || null
+        editingLyricsIdx = -1
+      }
+
+      if (relY >= rect.height - 10) {
+        commitEdit(); editingLyricsIdx = idx; render(); return
       }
 
       if (editingIdx===idx) return
