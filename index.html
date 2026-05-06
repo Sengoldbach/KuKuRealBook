@@ -3,6 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Oswald:wght@400;700&family=Playfair+Display:wght@400;700&family=Roboto+Condensed:wght@400;700&display=swap">
 <title>Chord Chart Editor</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -130,7 +132,7 @@
     top: 0;
     height: 40px;
     pointer-events: none;
-    z-index: 10;
+    z-index: 100;
   }
 
   /* rehearsal mark */
@@ -143,7 +145,7 @@
     color: #fff;
     padding: 1px 5px;
     border-radius: 3px;
-    z-index: 10;
+    z-index: 100;
   }
   .mark-A { background: #c0392b; }
   .mark-B { background: #2980b9; }
@@ -171,8 +173,8 @@
   .cell:not(:first-child) { padding-left: 4px; }
   .cell:last-child { border-right: none; }
   .cell:hover { background: #f0ece4; }
-  .cell.focused  { background: #ddeeff; outline: 2px solid #4a7fb5; outline-offset: -2px; z-index: 5; }
-  .cell.editing  { background: #fff9e6; outline: 2px solid #e6a817; outline-offset: -2px; z-index: 5; }
+  .cell.focused  { background: #ddeeff; outline: 2px solid #4a7fb5; outline-offset: -2px; z-index: 30; }
+  .cell.editing  { background: #fff9e6; outline: 2px solid #e6a817; outline-offset: -2px; z-index: 30; }
   .cell.selected { background: #cce4ff; }
 
   /* chord display */
@@ -217,13 +219,24 @@
     font-family: 'Georgia', serif;
     gap: 1px;
     pointer-events: none;
-    z-index: 11;
+    z-index: 110;
   }
   .time-sig span { display: block; line-height: 1; }
 
   .cell-nc { font-size: 11px; color: #888; font-style: italic; }
   .cell-pause { font-size: 18px; color: #aaa; }
   .cell-repeat { font-size: 22px; color: #555; font-family: monospace; line-height: 1; }
+
+  /* condensed mode */
+  .condensed .chord-wrapper,
+  .condensed .cell-nc,
+  .condensed .cell-pause,
+  .condensed .cell-repeat,
+  .condensed .cell-lyrics {
+    display: inline-block;
+    transform: scaleX(0.5);
+    transform-origin: left center;
+  }
 
   /* per-cell lyrics row — only rendered when at least one cell has lyrics */
   .lyrics-row {
@@ -305,10 +318,12 @@
   .autocomplete-item.selected { background: #ddeeff; }
 
   /* ── Print ── */
+  @page { margin: 10mm; }
   @media print {
     .song-header, .toolbar, .hint { display: none !important; }
     .chart-area { padding: 16px; max-width: 100%; margin: 0; }
     body { background: #fff; }
+    .cell { border-right: none; }
   }
 
   /* ── Footer hint ── */
@@ -455,6 +470,17 @@
     <button class="btn active" id="view-chord"  onclick="setViewMode('chord')">Chord</button>
     <button class="btn"        id="view-roman"  onclick="setViewMode('roman')">Ⅰ</button>
     <button class="btn"        id="view-arabic" onclick="setViewMode('arabic')">1</button>
+    <button class="btn"        id="view-condensed" onclick="toggleCondensed()">Condensed</button>
+    <select id="fontSelect" onchange="setChartFont(this.value)" style="font-family:inherit;font-size:12px;border:1px solid #ccc;border-radius:4px;padding:3px 6px;background:#fafafa;">
+      <option value="Georgia, serif">Georgia</option>
+      <option value="'Times New Roman', serif">Times New Roman</option>
+      <option value="Arial, sans-serif">Arial</option>
+      <option value="Verdana, sans-serif">Verdana</option>
+      <option value="'Lato', sans-serif">Lato</option>
+      <option value="'Oswald', sans-serif">Oswald</option>
+      <option value="'Playfair Display', serif">Playfair Display</option>
+      <option value="'Roboto Condensed', sans-serif">Roboto Condensed</option>
+    </select>
   </div>
   <div class="toolbar-sep"></div>
   <div class="toolbar-group">
@@ -503,10 +529,9 @@ let nextId = 100
 function newId() { return 'c'+(nextId++) }
 
 function makeCell(props = {}) {
-  return { id:newId(), type:'space', chord:null,
-    barlineLeft:null, barlineRight:null,
-    timeSignature:null, rehearsalMark:null,
-    lyrics:null, ...props }
+  const cell = { id: newId(), type: 'space', ...props }
+  Object.keys(cell).forEach(k => { if (cell[k] == null) delete cell[k] })
+  return cell
 }
 function cc(root, quality, extra={}) {
   return makeCell({ type:'chord', chord:{root,quality}, ...extra })
@@ -517,6 +542,7 @@ let song = {
   title:'Autumn Leaves', composer:'Kosma Joseph',
   style:'Medium Swing', key:'Gm', timeSignature:'4/4',
   cellsPerRow:16,
+  tags:[],
   cells:[
     cc('C',  '-7',   {barlineLeft:'repeat-open', rehearsalMark:'A'}), sc(), sc(), sc({barlineRight:'single'}),
     cc('F',  '7',    {barlineLeft:'single'}), sc(), sc(), sc({barlineRight:'single'}),
@@ -615,6 +641,17 @@ function transposeSong(targetKey) {
   render()
 }
 
+function setChartFont(font) {
+  document.getElementById('chartArea').style.fontFamily = font
+}
+
+function toggleCondensed() {
+  const area = document.getElementById('chartArea')
+  const btn = document.getElementById('view-condensed')
+  area.classList.toggle('condensed')
+  btn.classList.toggle('active', area.classList.contains('condensed'))
+}
+
 function setViewMode(mode) {
   viewMode = mode
   ;['chord','roman','arabic'].forEach(m =>
@@ -701,7 +738,9 @@ function render() {
         : renderCell(cell, cell.timeSignature)
 
       const padL = cell.barlineLeft ? 'padding-left:10px' : ''
-      html += `<div class="${cls}" data-idx="${idx}"${padL?` style="${padL}"`:''} >${markHtml}${innerHtml}</div>`
+      const zi = (isFocus || isEditing) ? 30 : (cpr - colIdx)
+      const styleAttr = [padL, `z-index:${zi}`].filter(Boolean).join(';')
+      html += `<div class="${cls}" data-idx="${idx}" style="${styleAttr}">${markHtml}${innerHtml}</div>`
 
       if (cell.barlineLeft)  blOverlays.push([colIdx,       'left',  cell.barlineLeft ])
       if (cell.barlineRight) blOverlays.push([colIdx+1,     'right', cell.barlineRight])
@@ -921,10 +960,14 @@ function commitEdit() {
   const text=input.value.trim()
   const cell=song.cells[editingIdx]
   saveHistory()
-  const meta={id:cell.id, barlineLeft:cell.barlineLeft, barlineRight:cell.barlineRight,
-    timeSignature:cell.timeSignature, rehearsalMark:cell.rehearsalMark}
+  const meta = { id: cell.id }
+  if (cell.barlineLeft)   meta.barlineLeft   = cell.barlineLeft
+  if (cell.barlineRight)  meta.barlineRight  = cell.barlineRight
+  if (cell.timeSignature) meta.timeSignature = cell.timeSignature
+  if (cell.rehearsalMark) meta.rehearsalMark = cell.rehearsalMark
+  if (cell.lyrics)        meta.lyrics        = cell.lyrics
   if (text==='') {
-    song.cells[editingIdx]={...meta, type:'space', chord:null}
+    song.cells[editingIdx] = { ...meta, type: 'space' }
   } else {
     const parsed = acItems[acSelectedIdx]
       ? {type:'chord', chord:{root:acItems[acSelectedIdx].root, quality:acItems[acSelectedIdx].quality}}
@@ -987,7 +1030,12 @@ document.addEventListener('keydown', e=>{
     saveHistory()
     for (let i=selMin();i<=selMax();i++){
       const c=song.cells[i]
-      song.cells[i]={id:c.id,type:'space',chord:null,barlineLeft:c.barlineLeft,barlineRight:c.barlineRight,timeSignature:c.timeSignature,rehearsalMark:c.rehearsalMark}
+      const meta = { id: c.id }
+      if (c.barlineLeft)   meta.barlineLeft   = c.barlineLeft
+      if (c.barlineRight)  meta.barlineRight  = c.barlineRight
+      if (c.timeSignature) meta.timeSignature = c.timeSignature
+      if (c.rehearsalMark) meta.rehearsalMark = c.rehearsalMark
+      song.cells[i] = { ...meta, type: 'space' }
     }
     anchorIdx=-1;render();return
   }
@@ -1040,11 +1088,15 @@ function deleteCells() {
 
 function setBarlineLeft(type) {
   saveHistory()
-  song.cells[focusIdx].barlineLeft = type==='none'?null:type; render()
+  if (type === 'none') delete song.cells[focusIdx].barlineLeft
+  else song.cells[focusIdx].barlineLeft = type
+  render()
 }
 function setBarlineRight(type) {
   saveHistory()
-  song.cells[focusIdx].barlineRight = type==='none'?null:type; render()
+  if (type === 'none') delete song.cells[focusIdx].barlineRight
+  else song.cells[focusIdx].barlineRight = type
+  render()
 }
 function setMark(mark) { saveHistory(); song.cells[focusIdx].rehearsalMark=mark; render() }
 function setTimeSig() {
@@ -1057,26 +1109,49 @@ function clearTimeSig() { saveHistory(); delete song.cells[focusIdx].timeSignatu
 //  Save / Load
 // ─────────────────────────────────────────────
 function songToJSON() {
-  return JSON.stringify({...song,
-    title:    document.getElementById('songTitle').value,
-    composer: document.getElementById('songComposer').value,
-    style:    document.getElementById('songStyle').value,
-    key:      document.getElementById('songKey').value,
+  const stripNulls = obj => {
+    const r = {}
+    for (const [k, v] of Object.entries(obj)) if (v != null) r[k] = v
+    return r
+  }
+  return JSON.stringify({
+    title:         document.getElementById('songTitle').value,
+    composer:      document.getElementById('songComposer').value,
+    style:         document.getElementById('songStyle').value,
+    key:           document.getElementById('songKey').value,
     timeSignature: document.getElementById('songTime').value,
-  },null,2)
+    cellsPerRow:   song.cellsPerRow || 16,
+    tags:          song.tags || [],
+    cells:         song.cells.map(stripNulls),
+  }, null, 2)
 }
 
 function loadSongData(data) {
-  if (!Array.isArray(data.cells)) return false  // old format, ignore
-  if (!data.cellsPerRow) data.cellsPerRow=16
-  song=data
-  document.getElementById('songTitle').value    = data.title    ||''
-  document.getElementById('songComposer').value = data.composer ||''
-  document.getElementById('songStyle').value    = data.style    ||''
+  if (!Array.isArray(data.cells)) return false
+  if (!data.cellsPerRow) data.cellsPerRow = 16
+  if (!data.tags) data.tags = []
+  delete data.rowLyrics
+  delete data.rowLyricsVisible
+  const seen = new Set()
+  data.cells = data.cells.map(cell => {
+    const c = {}
+    for (const [k, v] of Object.entries(cell)) if (v != null) c[k] = v
+    if (!c.id || seen.has(c.id)) c.id = newId()
+    seen.add(c.id)
+    return c
+  })
+  data.cells.forEach(cell => {
+    const n = parseInt(String(cell.id).replace(/\D/g, ''))
+    if (!isNaN(n) && n >= nextId) nextId = n + 1
+  })
+  song = data
+  document.getElementById('songTitle').value    = data.title    || ''
+  document.getElementById('songComposer').value = data.composer || ''
+  document.getElementById('songStyle').value    = data.style    || ''
   syncKeySelect(data.key)
-  const timeEl=document.getElementById('songTime')
-  for (const opt of timeEl.options) { if (opt.value===data.timeSignature){opt.selected=true;break} }
-  focusIdx=0; editingIdx=-1; anchorIdx=-1; render()
+  const timeEl = document.getElementById('songTime')
+  for (const opt of timeEl.options) { if (opt.value === data.timeSignature) { opt.selected = true; break } }
+  focusIdx = 0; editingIdx = -1; anchorIdx = -1; render()
 }
 
 
