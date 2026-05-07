@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>iReal Editor</title>
+<style>
+* { box-sizing: border-box; }
+body { font-family: monospace; background: #1b2730; color: #e6e3da; margin: 0; font-size: 13px; }
+
+/* ── Meta bar ── */
+#meta-bar {
+  display: flex; gap: 8px; align-items: center; padding: 8px 12px;
+  background: #0d1a22; border-bottom: 1px solid #334; flex-wrap: wrap;
+}
+#meta-bar label { font-size: 11px; color: #556; }
+#meta-bar input, #meta-bar select {
+  background: #1b2730; color: #e6e3da; border: 1px solid #334;
+  border-radius: 3px; padding: 3px 6px; font-family: monospace; font-size: 12px;
+}
+#meta-title    { width: 160px; }
+#meta-composer { width: 120px; }
+#meta-key      { width: 56px; }
+#meta-style    { width: 130px; }
+
+/* ── Toolbar ── */
+#toolbar {
+  display: flex; gap: 6px; align-items: center; padding: 6px 12px;
+  background: #13222c; border-bottom: 1px solid #334; flex-wrap: wrap;
+}
+.btn, #toolbar button, #toolbar select {
+  background: #1e3a4a; border: 1px solid #445; color: #94d5ff;
+  padding: 4px 10px; border-radius: 3px; cursor: pointer; font-size: 11px;
+  font-family: monospace; white-space: nowrap;
+}
+.btn:hover, #toolbar button:hover { background: #2a4a5e; }
+#toolbar .sep { width: 1px; height: 18px; background: #334; margin: 0 2px; }
+#toolbar select { color: #e6e3da; padding: 3px 6px; }
+#toolbar select option { background: #1b2730; }
+
+/* ── Grid ── */
+#grid-area { padding: 16px 12px; }
+.grid-wrap { padding-top: 22px; }
+.grid { display: grid; grid-template-columns: repeat(16, 1fr); row-gap: 12px; }
+.gcell {
+  height: 44px; border: 1px solid #1e3040; display: flex;
+  align-items: center; justify-content: center; font-size: 12px;
+  position: relative; background: #0d1a22; min-width: 0; overflow: visible;
+  cursor: pointer; user-select: none;
+}
+.gcell:hover { background: #121f28; }
+.gcell.selected { background: #0e2a38; outline: 2px solid #4af; outline-offset: -2px; z-index: 2; }
+.gcell.chord  { color: #7fffb2; font-weight: bold; background: rgba(127,255,178,.06); }
+.gcell.space  { color: #1e3040; }
+.gcell.nc     { color: #ffd700; font-style: italic; font-size: 9px; }
+.gcell.pause  { color: #888; font-size: 18px; }
+.gcell.repeat { color: #94d5ff; font-size: 16px; }
+.gcell.repeat2{ color: #94d5ff; font-size: 11px; letter-spacing: -1px; }
+
+/* barlines */
+.gcell .bl { position: absolute; left: 0; top: 0; bottom: 0; z-index: 4; pointer-events: none; }
+.gcell .br { position: absolute; right: 0; top: 0; bottom: 0; z-index: 4; pointer-events: none; }
+.bl.single  { border-left: 2px solid #668; }
+.br.single  { border-right: 2px solid #668; }
+.bl.double  { border-left: 4px double #bbb; }
+.br.double  { border-right: 4px double #bbb; }
+.bl.rep-open  { border-left: 3px solid #4af; box-shadow: 3px 0 0 #4af; }
+.bl.rep-close { border-left: 5px solid #4af; box-shadow: 3px 0 0 #4af; }
+.br.rep-close { border-right: 3px solid #4af; box-shadow: -3px 0 0 #4af; }
+.bl.final { border-left: 5px solid #bbb; }
+.br.final { border-right: 5px solid #bbb; }
+
+/* badges */
+.gcell .mark {
+  position: absolute; bottom: 100%; left: 0; margin-bottom: 2px;
+  font-size: 8px; font-weight: bold; background: #c0392b;
+  color: #fff; padding: 1px 4px; border-radius: 2px; white-space: nowrap; z-index: 5;
+  pointer-events: none;
+}
+.gcell .volta {
+  position: absolute; bottom: 100%; left: 14px; margin-bottom: 2px;
+  font-size: 8px; font-weight: bold; color: #87ceeb; background: #1a2e3a;
+  padding: 1px 3px; border-radius: 2px; white-space: nowrap; border-bottom: 2px solid #87ceeb;
+  pointer-events: none;
+}
+.gcell .ts {
+  position: absolute; right: calc(100% + 3px); top: 50%; transform: translateY(-50%);
+  font-size: 11px; font-weight: bold; color: #ffd700; line-height: 1;
+  display: flex; flex-direction: column; align-items: center; z-index: 5;
+  pointer-events: none;
+}
+.gcell .ts span { display: block; line-height: 1.1; }
+.gcell .annot {
+  position: absolute; top: 100%; left: 0; margin-top: 3px;
+  font-size: 9px; color: #87ceeb; white-space: nowrap; z-index: 5;
+  pointer-events: none; overflow: visible;
+}
+
+/* ── Chord input overlay ── */
+#chord-input {
+  display: none; position: fixed; z-index: 100;
+  background: #0d1a22; color: #7fffb2; border: 2px solid #4af;
+  border-radius: 3px; padding: 4px 6px; font-family: monospace; font-size: 13px;
+  font-weight: bold; outline: none; min-width: 60px;
+}
+
+/* ── Status bar ── */
+#status { padding: 4px 12px; font-size: 10px; color: #445; border-top: 1px solid #223; }
+</style>
+</head>
+<body>
+
+<div id="meta-bar">
+  <label>Title <input id="meta-title" placeholder="Untitled" oninput="song.title=this.value"></label>
+  <label>Composer <input id="meta-composer" placeholder="" oninput="song.composer=this.value"></label>
+  <label>Key
+    <select id="meta-key" onchange="song.key=this.value">
+      <option>C</option><option>Db</option><option>D</option><option>Eb</option>
+      <option>E</option><option>F</option><option>F#</option><option>Gb</option>
+      <option>G</option><option>Ab</option><option>A</option><option>Bb</option><option>B</option>
+      <option>A-</option><option>Bb-</option><option>B-</option><option>C-</option>
+      <option>C#-</option><option>D-</option><option>Eb-</option><option>E-</option>
+      <option>F-</option><option>F#-</option><option>G-</option><option>G#-</option>
+    </select>
+  </label>
+  <label>Style <input id="meta-style" placeholder="Medium Swing" oninput="song.style=this.value"></label>
+</div>
+
+<div id="toolbar">
+  <label class="btn">📂 Open
+    <input type="file" accept=".html,.ireal" style="display:none" onchange="loadFile(event)">
+  </label>
+  <button onclick="newSong()">New</button>
+  <button onclick="exportSong()">💾 Save</button>
+
+  <span class="sep"></span>
+  <button onclick="deleteSelected()" title="Delete selected token (Del)">✕ Delete</button>
+  <button onclick="insertSpace()" title="Insert space cell">+ Space</button>
+
+  <span class="sep"></span>
+  <select onchange="insertBarline(this.value);this.selectedIndex=0">
+    <option value="">Barline…</option>
+    <option value="|">| Single</option>
+    <option value="[">[ Double open</option>
+    <option value="]">] Double close</option>
+    <option value="{">{  Repeat open</option>
+    <option value="}">}  Repeat close</option>
+    <option value="Z">Z Final</option>
+  </select>
+
+  <select onchange="insertMark(this.value);this.selectedIndex=0">
+    <option value="">Mark…</option>
+    <option value="A">*A Section A</option>
+    <option value="B">*B Section B</option>
+    <option value="C">*C Section C</option>
+    <option value="D">*D Section D</option>
+    <option value="i">*i Intro</option>
+    <option value="v">*v Verse</option>
+  </select>
+
+  <select onchange="insertTimeSig(this.value);this.selectedIndex=0">
+    <option value="">Time sig…</option>
+    <option value="T44">4/4</option>
+    <option value="T34">3/4</option>
+    <option value="T68">6/8</option>
+    <option value="T54">5/4</option>
+    <option value="T74">7/4</option>
+  </select>
+
+  <select onchange="insertVolta(this.value);this.selectedIndex=0">
+    <option value="">Ending…</option>
+    <option value="1">1st ending</option>
+    <option value="2">2nd ending</option>
+  </select>
+
+  <span class="sep"></span>
+  <button onclick="undo()" title="Undo (Ctrl+Z)">↩ Undo</button>
+  <button onclick="copySelected()" title="Copy selected (Ctrl+C)">Copy</button>
+  <button onclick="pasteClipboard()" title="Paste after focus (Ctrl+V)">Paste</button>
+
+  <span class="sep"></span>
+  <button onclick="transpose(-1)">♭ −1</button>
+  <button onclick="transpose(1)">♯ +1</button>
+</div>
+
+<div id="grid-area">
+  <div class="grid-wrap"><div id="grid" class="grid"></div></div>
+</div>
+
+<div id="status">Click a cell to select · Type to enter chord · Del to delete · ←/→ to navigate</div>
+
+<input id="chord-input" type="text"
+  onkeydown="handleChordKey(event)">
+
+<script>
+// ── Constants ──────────────────────────────────────────────────
+const MUSIC_PREFIX = '1r34LbKcu7'
+const ROOTS = ['C','Db','D','Eb','E','F','F#','Gb','G','Ab','A','Bb','B']
+const ROOT_SEMITONES = {C:0,'C#':1,Db:1,D:2,'D#':3,Eb:3,E:4,F:5,'F#':6,Gb:6,G:7,'G#':8,Ab:8,A:9,'A#':10,Bb:10,B:11}
+
+// ── State ──────────────────────────────────────────────────────
+let song = { title: 'Untitled', composer: '', style: 'Medium Swing', key: 'C', tokens: [] }
+let focusTokenIdx = -1
+let anchorTokenIdx = -1
+let selectedSet = new Set()
+let cellMap = []   // cellMap[cellIdx] = tokenIdx
+let editing = false
+
+// ── Undo / Clipboard ───────────────────────────────────────────
+const undoStack = []
+let clipboard = []
+
+function saveUndo() {
+  undoStack.push(JSON.stringify(song.tokens))
+  if (undoStack.length > 50) undoStack.shift()
+}
+function undo() {
+  if (!undoStack.length) { setStatus('Nothing to undo'); return }
+  song.tokens = JSON.parse(undoStack.pop())
+  focusTokenIdx = -1; anchorTokenIdx = -1; selectedSet = new Set()
+  render(); updateStatus()
+}
+function copySelected() {
+  if (!selectedSet.size) { setStatus('Nothing selected'); return }
+  clipboard = [...selectedSet].sort((a,b)=>a-b).map(i => ({...song.tokens[i]}))
+  setStatus(`Copied ${clipboard.length} token(s)`)
+}
+function pasteClipboard() {
+  if (!clipboard.length) { setStatus('Clipboard empty'); return }
+  saveUndo()
+  const at = focusTokenIdx >= 0 ? focusTokenIdx + 1 : song.tokens.length
+  clipboard.forEach((t, i) => song.tokens.splice(at + i, 0, {...t}))
+  focusTokenIdx = at + clipboard.length - 1
+  selectedSet = new Set(); anchorTokenIdx = -1
+  render(); updateStatus()
+}
+
+// ── Crypto ─────────────────────────────────────────────────────
+function obfusc50(s) {
+  const a = s.split('')
+  for (let i = 0; i < 5; i++)   [a[i], a[49-i]] = [a[49-i], a[i]]
+  for (let i = 10; i < 24; i++) [a[i], a[49-i]] = [a[49-i], a[i]]
+  return a.join('')
+}
+function unscramble(s) {
+  let r = '', rest = s
+  while (rest.length > 50) {
+    const chunk = rest.slice(0, 50); rest = rest.slice(50)
+    r += rest.length < 2 ? chunk : obfusc50(chunk)
+  }
+  return r + rest
+}
+function decodeMusic(field) {
+  const idx = field.indexOf(MUSIC_PREFIX)
+  if (idx === -1) return field
+  return unscramble(field.slice(idx + MUSIC_PREFIX.length))
+}
+
+// ── Tokenizer ──────────────────────────────────────────────────
+// raw = exact DSL string used for serialization
+function tokenize(s) {
+  const tokens = []
+  let i = 0
+  while (i < s.length) {
+    if (s.slice(i,i+3) === 'XyQ') {
+      tokens.push({raw:' ', type:'space', cells:1, barline:false})
+      tokens.push({raw:' ', type:'space', cells:1, barline:false})
+      tokens.push({raw:' ', type:'space', cells:1, barline:false})
+      i+=3; continue
+    }
+    if (s.slice(i,i+2) === 'LZ') {
+      tokens.push({raw:' ', type:'space',   cells:1, barline:false})
+      tokens.push({raw:'|', type:'barline', cells:0, barline:true, barlineType:'single'})
+      i+=2; continue
+    }
+    if (s[i]==='|') { tokens.push({raw:'|', type:'barline', cells:0, barline:true, barlineType:'single'}); i++; continue }
+    if (s[i]==='[') { tokens.push({raw:'[', type:'barline', cells:0, barline:true, barlineType:'double'}); i++; continue }
+    if (s[i]===']') { tokens.push({raw:']', type:'barline', cells:0, barline:true, barlineType:'double'}); i++; continue }
+    if (s[i]==='{') { tokens.push({raw:'{', type:'barline', cells:0, barline:true, barlineType:'rep-open'}); i++; continue }
+    if (s[i]==='}') { tokens.push({raw:'}', type:'barline', cells:0, barline:true, barlineType:'rep-close'}); i++; continue }
+    if (s[i]==='Z') { tokens.push({raw:'Z', type:'barline', cells:0, barline:true, barlineType:'final'}); i++; continue }
+    if (s[i]===' ') { tokens.push({raw:' ', type:'space', cells:1, barline:false}); i++; continue }
+    if (s[i]==='T' && /\d/.test(s[i+1]||'')) {
+      let j=i+1; while(j<s.length&&/\d/.test(s[j]))j++
+      tokens.push({raw:s.slice(i,j), type:'timesig', cells:0, barline:false}); i=j; continue
+    }
+    if (s[i]==='*' && i+1<s.length) { tokens.push({raw:'*'+s[i+1], type:'mark', cells:0, barline:false}); i+=2; continue }
+    if (s[i]==='<') {
+      const e=s.indexOf('>',i); if(e>i){ tokens.push({raw:s.slice(i,e+1), type:'annotation', cells:0, barline:false}); i=e+1; continue }
+    }
+    if (s.slice(i,i+3)==='Kcl') {
+      tokens.push({raw:'|', type:'barline', cells:0, barline:true, barlineType:'single'})
+      tokens.push({raw:' ', type:'space',   cells:1, barline:false})
+      tokens.push({raw:'p', type:'chord',   cells:1, barline:false, extra:'/'})
+      i+=3; continue
+    }
+    if (s[i]==='r') { tokens.push({raw:'r', type:'chord', cells:1, barline:false, extra:'//'}); i++; continue }
+    if (s[i]==='x') { tokens.push({raw:'x', type:'chord', cells:1, barline:false, extra:'%'}); i++; continue }
+    if (s[i]==='Y') { let j=i; while(j<s.length&&s[j]==='Y')j++; tokens.push({raw:s.slice(i,j), type:'layout', cells:0, barline:false}); i=j; continue }
+    if (s[i]==='p') { tokens.push({raw:'p', type:'chord', cells:1, barline:false, extra:'/'}); i++; continue }
+    if (s[i]==='n') { tokens.push({raw:'n', type:'chord', cells:1, barline:false, extra:'N.C.'}); i++; continue }
+    if (s[i]==='N'&&/\d/.test(s[i+1]||'')) { tokens.push({raw:'N'+s[i+1], type:'mark', cells:0, barline:false}); i+=2; continue }
+    if (s[i]==='Q') { tokens.push({raw:'Q', type:'mark', cells:0, barline:false, extra:'Coda'}); i++; continue }
+    if (s[i]==='S') { tokens.push({raw:'S', type:'mark', cells:0, barline:false, extra:'Segno'}); i++; continue }
+    if (s[i]==='U') { tokens.push({raw:'U', type:'mark', cells:0, barline:false, extra:'End'}); i++; continue }
+    if (s[i]==='f') { tokens.push({raw:'f', type:'mark', cells:0, barline:false, extra:'𝄐'}); i++; continue }
+    if (s[i]===',') { tokens.push({raw:',', type:'sep', cells:0, barline:false}); i++; continue }
+    if (s[i]==='l') { tokens.push({raw:'l', type:'size', cells:0, barline:false, extra:'large'}); i++; continue }
+    if (s[i]==='s' && s[i+1]!=='u') { tokens.push({raw:'s', type:'size', cells:0, barline:false, extra:'small'}); i++; continue }
+    const cm = s.slice(i).match(/^[A-GW][\+\-\^\dhob#suadt]*(\/[A-G][#b]?)?/)
+    if (cm) { tokens.push({raw:cm[0], type:'chord', cells:1, barline:false}); i+=cm[0].length; continue }
+    tokens.push({raw:s[i], type:'unknown', cells:0, barline:false}); i++
+  }
+  // merge consecutive unknowns
+  const merged = []
+  for (const t of tokens) {
+    if (t.type==='unknown' && merged.length && merged[merged.length-1].type==='unknown')
+      merged[merged.length-1].raw += t.raw
+    else merged.push(t)
+  }
+  return merged
+}
+
+// ── Serializer ─────────────────────────────────────────────────
+function serializeDsl() {
+  return song.tokens.map(t => t.raw).join('')
+}
+function buildIrealUrl() {
+  const dsl  = serializeDsl()
+  const enc  = MUSIC_PREFIX + unscramble(dsl)
+  const t    = encodeURIComponent(song.title || 'Untitled')
+  const c    = encodeURIComponent(song.composer || '')
+  const st   = encodeURIComponent(song.style || '')
+  const k    = encodeURIComponent(song.key || 'C')
+  const m    = encodeURIComponent(enc)
+  return `irealb://${t}=${c}==${st}=${k}==${m}==0=0`
+}
+
+// ── Renderer ───────────────────────────────────────────────────
+function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') }
+
+function render() {
+  const grid = document.getElementById('grid')
+  cellMap = []
+  let html = ''
+
+  let pendingBarlineLeft = null
+  let pendingMark = null
+  let pendingTimeSig = null
+  let pendingVolta = null
+  let pendingAnnot = null
+
+  song.tokens.forEach((t, tidx) => {
+    if (t.type === 'size' || t.type === 'sep' || t.type === 'unknown') return
+    if (t.type === 'layout') {
+      const h = t.raw.length * 12
+      html += `<div style="grid-column:1/-1;height:${h}px;"></div>`
+      return
+    }
+    if (t.type === 'timesig')    { pendingTimeSig = t.raw.slice(1); return }
+    if (t.type === 'annotation') { pendingAnnot = t.raw.slice(1,-1); return }
+    if (t.type === 'mark') {
+      if (t.raw.startsWith('*')) pendingMark = t.raw.slice(1)
+      else if (t.raw.startsWith('N')) pendingVolta = t.raw.slice(1)
+      return
+    }
+    if (t.barline && t.cells === 0) { pendingBarlineLeft = t.barlineType; return }
+
+    const isSelected = selectedSet.has(tidx)
+
+    for (let c = 0; c < t.cells; c++) {
+      const isFirst = c === 0
+      const isLast  = c === t.cells - 1
+      const cellIdx = cellMap.length
+      cellMap.push(tidx)
+
+      let cls = 'gcell'
+      if (isSelected) cls += ' selected'
+      let inner = ''
+
+      if (t.type === 'chord') {
+        if      (t.extra === '%')   { cls += ' repeat';  inner = '%' }
+        else if (t.extra === '//')  { cls += ' repeat2'; inner = '//' }
+        else if (t.extra === '/')   { cls += ' pause';   inner = '/' }
+        else if (t.extra === 'N.C.'){ cls += ' nc';      inner = 'N.C.' }
+        else {
+          cls += ' chord'
+          const disp = t.raw.startsWith('W') ? t.raw.slice(1) : t.raw
+          inner = esc(disp)
+        }
+      } else {
+        cls += ' space'
+      }
+
+      let blHtml = '', brHtml = ''
+      if (isFirst && pendingBarlineLeft) {
+        blHtml = `<span class="bl ${pendingBarlineLeft}"></span>`
+        pendingBarlineLeft = null
+      }
+      if (isLast && t.barline && blHtml === '') {
+        brHtml = `<span class="br ${t.barlineType||'single'}"></span>`
+      }
+
+      let markHtml = ''
+      if (isFirst && pendingMark) {
+        markHtml = `<span class="mark">${esc(pendingMark)}</span>`
+        pendingMark = null
+      }
+      let voltaHtml = ''
+      if (isFirst && pendingVolta) {
+        voltaHtml = `<span class="volta">${esc(pendingVolta)}.</span>`
+        pendingVolta = null
+      }
+      let tsHtml = ''
+      if (isFirst && pendingTimeSig) {
+        const top = pendingTimeSig[0] || '?', bot = pendingTimeSig[1] || pendingTimeSig[0] || '?'
+        tsHtml = `<span class="ts"><span>${top}</span><span>${bot}</span></span>`
+        pendingTimeSig = null
+      }
+      let annotHtml = ''
+      if (isFirst && pendingAnnot) {
+        const am = pendingAnnot.match(/^\*0(\d+)(.*)/)
+        const shift = am ? parseInt(am[1]) : 0
+        const atext = am ? am[2] : pendingAnnot
+        const astyle = shift ? ` style="transform:translateY(-${shift}px)"` : ''
+        annotHtml = `<span class="annot"${astyle}>${esc(atext).replace(/\/\//g, '<br>')}</span>`
+        pendingAnnot = null
+      }
+
+      html += `<div class="${cls}" data-tidx="${tidx}" data-cidx="${cellIdx}">${blHtml}${brHtml}${markHtml}${voltaHtml}${tsHtml}${annotHtml}${inner}</div>`
+    }
+
+    if (t.barline && t.cells > 0) pendingBarlineLeft = t.barlineType
+  })
+
+  grid.innerHTML = html
+}
+
+// ── Selection ──────────────────────────────────────────────────
+function selectToken(tidx, shift) {
+  cancelEdit()
+  if (shift && anchorTokenIdx >= 0) {
+    const lo = Math.min(anchorTokenIdx, tidx)
+    const hi = Math.max(anchorTokenIdx, tidx)
+    selectedSet = new Set()
+    for (let i = lo; i <= hi; i++) selectedSet.add(i)
+  } else {
+    selectedSet = new Set([tidx])
+    anchorTokenIdx = tidx
+  }
+  focusTokenIdx = tidx
+  render()
+  updateStatus()
+}
+
+function editToken(tidx) {
+  selectToken(tidx)
+  const t = song.tokens[tidx]
+  if (t && (t.type === 'chord' || t.type === 'space')) {
+    showChordInput(tidx)
+  }
+}
+
+function clearSelection() {
+  cancelEdit()
+  focusTokenIdx = -1
+  anchorTokenIdx = -1
+  selectedSet = new Set()
+  render()
+}
+
+// ── Chord input ────────────────────────────────────────────────
+function showChordInput(tidx) {
+  const cell = document.querySelector(`[data-tidx="${tidx}"]`)
+  if (!cell) return
+  const t = song.tokens[tidx]
+  const input = document.getElementById('chord-input')
+  const rect = cell.getBoundingClientRect()
+  input.style.left   = rect.left + 'px'
+  input.style.top    = rect.top + 'px'
+  input.style.width  = Math.max(rect.width, 72) + 'px'
+  input.style.height = rect.height + 'px'
+  input.style.display = 'block'
+  // pre-fill with current chord text (empty for space/lz/kcl)
+  input.value = (t.type === 'chord' && !t.extra) ? t.raw : ''
+  editing = true
+  input.focus()
+  input.select()
+}
+
+function handleChordKey(e) {
+  if (e.key === 'Enter' || e.key === 'Tab') {
+    e.preventDefault()
+    commitEdit(document.getElementById('chord-input').value.trim())
+    if (e.key === 'Tab') navigateTokens(e.shiftKey ? -1 : 1)
+  } else if (e.key === 'Escape') {
+    cancelEdit()
+  } else if (e.key === 'Delete' || e.key === 'Backspace') {
+    if (document.getElementById('chord-input').value === '') {
+      e.preventDefault()
+      cancelEdit()
+      deleteSelected()
+    }
+  }
+}
+
+function commitEdit(text) {
+  if (focusTokenIdx < 0) return
+  saveUndo()
+  if (!text) {
+    song.tokens[focusTokenIdx] = {raw:' ', type:'space', cells:1, barline:false}
+  } else {
+    const m = text.match(/^[A-GW][\+\-\^\dhob#suadt]*(\/[A-G][#b]?)?$/)
+    if (!m) { setStatus(`"${text}" is not a valid chord`); return }
+    song.tokens[focusTokenIdx] = {raw:text, type:'chord', cells:1, barline:false}
+  }
+  cancelEdit()
+  render()
+}
+
+function cancelEdit() {
+  const input = document.getElementById('chord-input')
+  input.style.display = 'none'
+  editing = false
+}
+
+// ── Navigation ─────────────────────────────────────────────────
+function cellTokensIndices() {
+  // ordered list of token indices that have cells (skipping 0-cell tokens)
+  const seen = new Set(), result = []
+  cellMap.forEach(tidx => { if (!seen.has(tidx)) { seen.add(tidx); result.push(tidx) } })
+  return result
+}
+
+function navigateTokens(dir) {
+  const indices = cellTokensIndices()
+  if (!indices.length) return
+  const cur = indices.indexOf(focusTokenIdx)
+  const next = cur === -1 ? 0 : Math.max(0, Math.min(indices.length-1, cur + dir))
+  selectToken(indices[next], false)
+}
+
+// ── Insert / Delete ────────────────────────────────────────────
+function insertBefore(tidx, token) {
+  song.tokens.splice(tidx, 0, token)
+  if (focusTokenIdx >= tidx) focusTokenIdx++
+}
+
+function insertSpace() {
+  saveUndo()
+  const at = focusTokenIdx >= 0 ? focusTokenIdx : song.tokens.length
+  insertBefore(at, {raw:' ', type:'space', cells:1, barline:false})
+  render()
+}
+
+function insertBarline(raw) {
+  if (!raw) return
+  saveUndo()
+  const map = {'|':'single','[':'double',']':'double','{':'rep-open','}':'rep-close','Z':'final'}
+  const at = focusTokenIdx >= 0 ? focusTokenIdx : song.tokens.length
+  insertBefore(at, {raw, type:'barline', cells:0, barline:true, barlineType:map[raw]})
+  render()
+}
+
+function insertMark(letter) {
+  if (!letter) return
+  saveUndo()
+  const at = focusTokenIdx >= 0 ? focusTokenIdx : song.tokens.length
+  insertBefore(at, {raw:'*'+letter, type:'mark', cells:0, barline:false})
+  render()
+}
+
+function insertTimeSig(raw) {
+  if (!raw) return
+  saveUndo()
+  const at = focusTokenIdx >= 0 ? focusTokenIdx : song.tokens.length
+  insertBefore(at, {raw, type:'timesig', cells:0, barline:false})
+  render()
+}
+
+function insertVolta(n) {
+  if (!n) return
+  saveUndo()
+  const at = focusTokenIdx >= 0 ? focusTokenIdx : song.tokens.length
+  insertBefore(at, {raw:'N'+n, type:'mark', cells:0, barline:false})
+  render()
+}
+
+function deleteSelected() {
+  if (selectedSet.size === 0) return
+  saveUndo()
+  const indices = [...selectedSet].sort((a, b) => b - a)
+  indices.forEach(i => song.tokens.splice(i, 1))
+  focusTokenIdx = -1
+  anchorTokenIdx = -1
+  selectedSet = new Set()
+  render()
+  updateStatus()
+}
+
+// ── Transposition ──────────────────────────────────────────────
+function parseRoot(raw) {
+  // returns { root:'C#', quality:'-7', bass:null } or null
+  const m = raw.match(/^([A-G][#b]?)(.*?)(?:\/(([A-G][#b]?)))?$/)
+  if (!m) return null
+  return { root: m[1], quality: m[2], bass: m[4] || null }
+}
+
+function transposeRoot(root, semitones) {
+  const base = ROOT_SEMITONES[root]
+  if (base === undefined) return root
+  const n = ((base + semitones) % 12 + 12) % 12
+  // prefer flats when going down, sharps when going up
+  const flat  = ['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B']
+  const sharp = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B']
+  return semitones < 0 ? flat[n] : sharp[n]
+}
+
+function transpose(semitones) {
+  saveUndo()
+  song.tokens.forEach(t => {
+    if (t.type !== 'chord' || t.extra) return  // skip special chord types
+    const p = parseRoot(t.raw)
+    if (!p) return
+    const newRoot = transposeRoot(p.root, semitones)
+    const newBass = p.bass ? '/' + transposeRoot(p.bass, semitones) : ''
+    t.raw = newRoot + p.quality + newBass
+  })
+  // also transpose key
+  const ki = ROOT_SEMITONES[song.key.replace('-','')]
+  if (ki !== undefined) {
+    const isMinor = song.key.endsWith('-')
+    const flat  = ['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B']
+    const sharp = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B']
+    const n = ((ki + semitones) % 12 + 12) % 12
+    song.key = (semitones < 0 ? flat[n] : sharp[n]) + (isMinor ? '-' : '')
+    document.getElementById('meta-key').value = song.key
+  }
+  render()
+}
+
+// ── File I/O ───────────────────────────────────────────────────
+function loadFile(e) {
+  const file = e.target.files[0]; if (!file) return
+  const reader = new FileReader()
+  reader.onload = ev => {
+    const html = ev.target.result
+    const m = html.match(/href="(irealb:\/\/[^"]+)"/)
+    if (!m) { alert('No irealb:// link found'); return }
+    loadFromUrl(decodeURIComponent(m[1]))
+  }
+  reader.readAsText(file, 'utf-8')
+  e.target.value = ''
+}
+
+function loadFromUrl(rawUrl) {
+  const body  = rawUrl.replace(/^irealb:\/\//, '')
+  const songs = body.split('===')
+  const parts = songs[0].split(/=+/).filter(x => x !== '')
+  const mIdx  = parts.findIndex(p => p.includes(MUSIC_PREFIX))
+  if (mIdx < 0) { alert('Music field not found'); return }
+
+  song.title    = parts[0] || 'Untitled'
+  song.composer = parts[1] || ''
+  song.style    = mIdx >= 3 ? parts[mIdx-2] || '' : ''
+  song.key      = mIdx >= 2 ? parts[mIdx-1] || 'C' : 'C'
+  song.tokens   = tokenize(decodeMusic(parts[mIdx]))
+
+  focusTokenIdx = -1
+  updateMetaBar()
+  render()
+}
+
+function newSong() {
+  song = { title: 'Untitled', composer: '', style: 'Medium Swing', key: 'C', tokens: blankTokens() }
+  focusTokenIdx = -1
+  updateMetaBar()
+  render()
+}
+
+function blankTokens() {
+  const toks = []
+  toks.push({raw:'[', type:'barline', cells:0, barline:true, barlineType:'double'})
+  for (let m = 0; m < 16; m++) {
+    toks.push({raw:' ', type:'space', cells:1, barline:false})
+    toks.push({raw:' ', type:'space', cells:1, barline:false})
+    toks.push({raw:' ', type:'space', cells:1, barline:false})
+    toks.push({raw:' ', type:'space', cells:1, barline:false})
+    if (m < 15) toks.push({raw:'|', type:'barline', cells:0, barline:true, barlineType:'single'})
+  }
+  toks.push({raw:']', type:'barline', cells:0, barline:true, barlineType:'double'})
+  toks.push({raw:'Z', type:'barline', cells:0, barline:true, barlineType:'final'})
+  return toks
+}
+
+function exportSong() {
+  const url  = buildIrealUrl()
+  const title = song.title || 'Untitled'
+  const html = `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head><meta charset="UTF-8"><title>iReal Pro</title></head>
+<body>
+<h3><a href="${url.replace(/"/g,'&quot;')}">${esc(title)}</a> - ${esc(song.composer)}</h3>
+<br/>Made with iReal Editor
+</body>
+</html>`
+  const blob = new Blob([html], {type:'text/html'})
+  const a = document.createElement('a')
+  a.href = URL.createObjectURL(blob)
+  a.download = title.replace(/[^\w\s-]/g,'').trim() + '.html'
+  a.click()
+}
+
+// ── UI helpers ─────────────────────────────────────────────────
+function updateMetaBar() {
+  document.getElementById('meta-title').value    = song.title
+  document.getElementById('meta-composer').value = song.composer
+  document.getElementById('meta-key').value      = song.key
+  document.getElementById('meta-style').value    = song.style
+}
+
+function updateStatus() {
+  if (focusTokenIdx < 0) { setStatus('Click a cell to select · Type to enter chord · Del to delete · ←/→ to navigate'); return }
+  const t = song.tokens[focusTokenIdx]
+  setStatus(`Token [${focusTokenIdx}] type:${t.type} raw:"${t.raw}"`)
+}
+
+function setStatus(msg) {
+  document.getElementById('status').textContent = msg
+}
+
+// ── Keyboard ───────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  const tag = document.activeElement?.tagName
+  // Ctrl shortcuts work even while editing
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z') { e.preventDefault(); undo(); return }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c') { e.preventDefault(); copySelected(); return }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v') { e.preventDefault(); pasteClipboard(); return }
+  if (editing) return
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
+  if (e.key === 'ArrowLeft')  { e.preventDefault(); navigateTokens(-1) }
+  if (e.key === 'ArrowRight') { e.preventDefault(); navigateTokens(1) }
+  if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); deleteSelected() }
+  if (e.key === 'Escape') clearSelection()
+  if (e.key === 'Enter' && focusTokenIdx >= 0) { editToken(focusTokenIdx); return }
+})
+
+// Close chord input when clicking outside it
+document.addEventListener('mousedown', e => {
+  if (!editing) return
+  if (!e.target.closest('#chord-input')) {
+    commitEdit(document.getElementById('chord-input').value.trim())
+  }
+})
+
+// ── Grid click delegation ──────────────────────────────────────
+let _lastClickTidx = -1
+let _lastClickTime = 0
+
+document.getElementById('grid').addEventListener('click', e => {
+  const cell = e.target.closest('[data-tidx]')
+  if (!cell) return
+  const tidx = parseInt(cell.dataset.tidx)
+  const now = Date.now()
+  const isDbl = (tidx === _lastClickTidx && now - _lastClickTime < 400)
+
+  selectToken(tidx, e.shiftKey)
+
+  if (isDbl && !e.shiftKey) {
+    editToken(tidx)
+    _lastClickTidx = -1
+  } else {
+    _lastClickTidx = tidx
+    _lastClickTime = now
+  }
+})
+
+// ── Init ───────────────────────────────────────────────────────
+window.onload = () => { newSong() }
+</script>
+</body>
+</html>
