@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>用户主页 — iReal Forum</title>
+<style>
+* { box-sizing: border-box; }
+body { font-family: monospace; background: #1b2730; color: #e6e3da; margin: 0; font-size: 13px; }
+header { display: flex; align-items: center; gap: 12px; padding: 10px 20px;
+         background: #0d1a22; border-bottom: 1px solid #334; }
+header h1 { margin: 0; font-size: 16px; }
+header h1 a { color: #94d5ff; text-decoration: none; }
+.back { color: #556; font-size: 12px; text-decoration: none; }
+.back:hover { color: #94d5ff; }
+.container { max-width: 800px; margin: 0 auto; padding: 20px; }
+.profile { margin-bottom: 24px; }
+.profile h2 { margin: 0; font-size: 18px; color: #7fffb2; }
+.profile .since { color: #445; font-size: 11px; margin-top: 4px; }
+h3 { color: #94d5ff; font-size: 13px; margin: 0 0 10px;
+     border-bottom: 1px solid #334; padding-bottom: 6px; }
+.version-card { border: 1px solid #1e3040; border-radius: 4px; padding: 10px 14px;
+                margin-bottom: 8px; cursor: pointer; }
+.version-card:hover { background: rgba(255,255,255,.03); }
+.v-title    { color: #7fffb2; font-weight: bold; font-size: 14px; }
+.v-composer { color: #94d5ff; font-size: 11px; }
+.v-meta     { display: flex; gap: 14px; margin-top: 6px; color: #445; font-size: 11px; }
+.loading    { color: #445; padding: 40px; text-align: center; }
+</style>
+</head>
+<body>
+
+<header>
+  <a class="back" href="/">← 返回</a>
+  <h1><a href="/">iReal Forum</a></h1>
+</header>
+
+<div class="container">
+  <div id="content"><div class="loading">加载中…</div></div>
+</div>
+
+<script src="/js/api.js"></script>
+<script>
+const username = new URLSearchParams(location.search).get('u')
+
+async function init() {
+  const { user, versions } = await API.getUser(username)
+  document.title = `${user.username} — iReal Forum`
+
+  const cardsHtml = versions.map(v => `
+    <div class="version-card" onclick="location.href='/song.html?id=${v.song_id}'">
+      <div class="v-title">${esc(v.title)}</div>
+      <div class="v-composer">${esc(v.composer) || '—'}</div>
+      <div class="v-meta">
+        <span>${esc(v.style)}</span>
+        <span>${esc(v.key_sig)}</span>
+        <span>♥ ${v.likes}</span>
+        <span>${v.updated_at.slice(0,10)}</span>
+      </div>
+    </div>
+  `).join('') || '<div style="color:#445">暂无发布</div>'
+
+  document.getElementById('content').innerHTML = `
+    <div class="profile">
+      <h2>${esc(user.username)}</h2>
+      <div class="since">注册于 ${user.created_at.slice(0,10)}</div>
+    </div>
+    <h3>发布的谱子（${versions.length}）</h3>
+    ${cardsHtml}
+  `
+}
+
+function esc(s) {
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+}
+
+init()
+</script>
+</body>
+</html>

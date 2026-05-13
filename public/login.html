@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>登录 / 注册 — iReal Forum</title>
+<style>
+* { box-sizing: border-box; }
+body { font-family: monospace; background: #1b2730; color: #e6e3da; margin: 0;
+       display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+.card { background: #0d1a22; border: 1px solid #334; border-radius: 6px; padding: 32px; width: 360px; }
+h2 { margin: 0 0 24px; color: #94d5ff; font-size: 18px; }
+.tabs { display: flex; gap: 0; margin-bottom: 24px; }
+.tab { flex: 1; padding: 8px; background: #1b2730; border: 1px solid #334;
+       cursor: pointer; text-align: center; font-size: 13px; font-family: monospace; color: #e6e3da; }
+.tab.active { background: #1e3a4a; color: #94d5ff; border-color: #4af; }
+.tab:first-child { border-radius: 4px 0 0 4px; }
+.tab:last-child  { border-radius: 0 4px 4px 0; }
+label { display: block; font-size: 11px; color: #556; margin-bottom: 4px; margin-top: 14px; }
+input { width: 100%; background: #1b2730; border: 1px solid #334; color: #e6e3da;
+        padding: 8px 10px; border-radius: 3px; font-family: monospace; font-size: 13px; }
+input:focus { outline: none; border-color: #4af; }
+button.submit { width: 100%; margin-top: 20px; padding: 10px; background: #1e3a4a;
+                border: 1px solid #4af; color: #94d5ff; font-family: monospace;
+                font-size: 13px; border-radius: 3px; cursor: pointer; }
+button.submit:hover { background: #2a4a5e; }
+.err { color: #e53; font-size: 12px; margin-top: 10px; min-height: 16px; }
+a { color: #4af; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h2>iReal Forum</h2>
+  <div class="tabs">
+    <div class="tab active" id="tab-login"    onclick="switchTab('login')">登录</div>
+    <div class="tab"        id="tab-register" onclick="switchTab('register')">注册</div>
+  </div>
+
+  <!-- 登录表单 -->
+  <div id="form-login">
+    <label>邮箱</label>
+    <input id="login-email" type="email" placeholder="your@email.com">
+    <label>密码</label>
+    <input id="login-password" type="password" placeholder="••••••">
+    <div class="err" id="login-err"></div>
+    <button class="submit" onclick="doLogin()">登录</button>
+  </div>
+
+  <!-- 注册表单 -->
+  <div id="form-register" style="display:none">
+    <label>用户名</label>
+    <input id="reg-username" type="text" placeholder="jazz_fan">
+    <label>邮箱</label>
+    <input id="reg-email" type="email" placeholder="your@email.com">
+    <label>密码（至少6位）</label>
+    <input id="reg-password" type="password" placeholder="••••••">
+    <div class="err" id="reg-err"></div>
+    <button class="submit" onclick="doRegister()">注册</button>
+  </div>
+</div>
+
+<script src="/js/api.js"></script>
+<script>
+function switchTab(tab) {
+  document.getElementById('form-login').style.display    = tab === 'login'    ? '' : 'none'
+  document.getElementById('form-register').style.display = tab === 'register' ? '' : 'none'
+  document.getElementById('tab-login').classList.toggle('active',    tab === 'login')
+  document.getElementById('tab-register').classList.toggle('active', tab === 'register')
+}
+
+async function doLogin() {
+  const err = document.getElementById('login-err')
+  err.textContent = ''
+  try {
+    await API.login(
+      document.getElementById('login-email').value,
+      document.getElementById('login-password').value
+    )
+    location.href = '/'
+  } catch(e) { err.textContent = e.message }
+}
+
+async function doRegister() {
+  const err = document.getElementById('reg-err')
+  err.textContent = ''
+  try {
+    await API.register(
+      document.getElementById('reg-username').value,
+      document.getElementById('reg-email').value,
+      document.getElementById('reg-password').value
+    )
+    location.href = '/'
+  } catch(e) { err.textContent = e.message }
+}
+
+// 如果已登录直接跳转
+API.me().then(d => { if (d.user) location.href = '/' })
+</script>
+</body>
+</html>

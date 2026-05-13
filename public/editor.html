@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>编辑器 — iReal Forum</title>
+<style>
+/* 顶部导航栏覆盖在 editor 上方 */
+#forum-nav {
+  display: flex; align-items: center; gap: 10px; padding: 6px 12px;
+  background: #0a141c; border-bottom: 1px solid #223; font-family: monospace; font-size: 12px;
+}
+#forum-nav a { color: #4af; text-decoration: none; }
+#forum-nav a:hover { text-decoration: underline; }
+#forum-nav .spacer { flex: 1; }
+#publish-btn {
+  background: #1a4a2a; border: 1px solid #2a7a3a; color: #7fffb2;
+  padding: 4px 14px; border-radius: 3px; cursor: pointer; font-family: monospace; font-size: 12px;
+}
+#publish-btn:hover { background: #2a5a3a; }
+
+/* 发布确认弹窗 */
+#publish-modal {
+  display: none; position: fixed; inset: 0; background: rgba(0,0,0,.7);
+  z-index: 9999; align-items: center; justify-content: center;
+}
+#publish-modal.open { display: flex; }
+.modal-card {
+  background: #0d1a22; border: 1px solid #334; border-radius: 6px;
+  padding: 24px; width: 400px; font-family: monospace;
+}
+.modal-card h3 { margin: 0 0 16px; color: #94d5ff; font-size: 15px; }
+.modal-preview { background: #1b2730; border: 1px solid #334; border-radius: 3px;
+                 padding: 10px; margin-bottom: 16px; font-size: 12px; color: #e6e3da; }
+.modal-preview .row { margin-bottom: 4px; }
+.modal-preview .label { color: #556; }
+.modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+.modal-actions button {
+  padding: 6px 16px; border-radius: 3px; cursor: pointer;
+  font-family: monospace; font-size: 12px; border: 1px solid;
+}
+.btn-cancel  { background: #1b2730; border-color: #445; color: #e6e3da; }
+.btn-confirm { background: #1a4a2a; border-color: #2a7a3a; color: #7fffb2; }
+.btn-overwrite { background: #3a2a0a; border-color: #7a5a0a; color: #ffd700; }
+.modal-msg { font-size: 12px; color: #ffd700; margin-bottom: 12px; }
+</style>
+</head>
+<body>
+
+<div id="forum-nav">
+  <a href="/">← iReal Forum</a>
+  <span class="spacer"></span>
+  <span id="nav-user"></span>
+  <button id="publish-btn" onclick="openPublish()">发布谱子</button>
+</div>
+
+<!-- 发布确认弹窗 -->
+<div id="publish-modal">
+  <div class="modal-card">
+    <h3>确认发布</h3>
+    <div class="modal-preview" id="modal-preview"></div>
+    <div class="modal-msg" id="modal-msg"></div>
+    <div class="modal-actions" id="modal-actions"></div>
+  </div>
+</div>
+
+<!-- 嵌入现有 editor（用 iframe 加载，保持独立） -->
+<iframe id="editor-frame" src="/ireal_editor.html"
+  style="width:100%;height:calc(100vh - 38px);border:none;display:block">
+</iframe>
+
+<script src="/js/api.js"></script>
+<script>
+let currentUser = null
+
+async function init() {
+  const { user } = await API.me()
+  currentUser = user
+  const nav = document.getElementById('nav-user')
+  if (user) {
+    nav.textContent = user.username
+  } else {
+    nav.innerHTML = `<a href="/login.html">登录后才能发布</a>`
+    document.getElementById('publish-btn').disabled = true
+  }
+}
+
+function getSongFromEditor() {
+  // 从 iframe 里的 editor 获取当前谱子数据
+  try {
+    const editorWin = document.getElementById('editor-frame').contentWindow
+    return {
+      title:     editorWin.song.title     || '',
+      composer:  editorWin.song.composer  || '',
+      style:     editorWin.song.style     || '',
+      key_sig:   editorWin.song.key       || 'C',
+      ireal_url: editorWin.buildIrealUrl(),
+    }
+  } catch {
+    return null
+  }
+}
+
+function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') }
+
+async function openPublish() {
+  if (!currentUser) { location.href = '/login.html'; return }
+
+  const song = getSongFromEditor()
+  if (!song) { alert('无法读取谱子数据，请重试'); return }
+  if (!song.title) { alert('请先填写曲名'); return }
+
+  document.getElementById('modal-preview').innerHTML = `
+    <div class="row"><span class="label">曲名：</span>${esc(song.title)}</div>
+    <div class="row"><span class="label">作曲者：</span>${esc(song.composer) || '（未填）'}</div>
+    <div class="row"><span class="label">风格：</span>${esc(song.style)}</div>
+    <div class="row"><span class="label">调性：</span>${esc(song.key_sig)}</div>
+  `
+  document.getElementById('modal-msg').textContent = ''
+  document.getElementById('modal-actions').innerHTML = `
+    <button class="btn-cancel"  onclick="closeModal()">取消</button>
+    <button class="btn-confirm" onclick="doPublish(false)">确认发布</button>
+  `
+  document.getElementById('publish-modal').classList.add('open')
+}
+
+function closeModal() {
+  document.getElementById('publish-modal').classList.remove('open')
+}
+
+async function doPublish(overwrite) {
+  const song = getSongFromEditor()
+  try {
+    const result = await API.publish({ ...song, overwrite })
+    if (result.conflict) {
+      // 已有自己的版本，询问覆盖
+      document.getElementById('modal-msg').textContent = '你已经发布过这首曲子的版本，是否覆盖？'
+      document.getElementById('modal-actions').innerHTML = `
+        <button class="btn-cancel"    onclick="closeModal()">取消</button>
+        <button class="btn-confirm"   onclick="doPublish(false)">追加新版本</button>
+        <button class="btn-overwrite" onclick="doPublish(true)">覆盖我的版本</button>
+      `
+      return
+    }
+    closeModal()
+    location.href = `/song.html?id=${result.song_id}`
+  } catch(e) {
+    document.getElementById('modal-msg').textContent = e.message
+  }
+}
+
+init()
+</script>
+</body>
+</html>

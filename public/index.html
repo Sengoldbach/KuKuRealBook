@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>iReal Forum</title>
+<style>
+* { box-sizing: border-box; }
+body { font-family: monospace; background: #1b2730; color: #e6e3da; margin: 0; font-size: 13px; }
+header {
+  display: flex; align-items: center; gap: 12px; padding: 10px 20px;
+  background: #0d1a22; border-bottom: 1px solid #334; flex-wrap: wrap;
+}
+header h1 { margin: 0; font-size: 16px; color: #94d5ff; flex: 1; }
+header a  { color: #94d5ff; text-decoration: none; font-size: 12px; }
+header a:hover { text-decoration: underline; }
+.sep { color: #445; }
+
+.search-bar {
+  display: flex; gap: 6px; padding: 12px 20px;
+  background: #13222c; border-bottom: 1px solid #334; flex-wrap: wrap;
+}
+.search-bar input, .search-bar select {
+  background: #1b2730; border: 1px solid #334; color: #e6e3da;
+  padding: 5px 8px; border-radius: 3px; font-family: monospace; font-size: 12px;
+}
+.search-bar input:focus, .search-bar select:focus { outline: none; border-color: #4af; }
+#search-q { width: 180px; }
+#search-composer { width: 130px; }
+#search-style { width: 140px; }
+.btn { background: #1e3a4a; border: 1px solid #445; color: #94d5ff;
+       padding: 5px 12px; border-radius: 3px; cursor: pointer; font-family: monospace; font-size: 12px; }
+.btn:hover { background: #2a4a5e; }
+
+.sort-bar {
+  display: flex; gap: 8px; padding: 8px 20px; align-items: center; color: #556; font-size: 12px;
+}
+.sort-btn { background: none; border: none; color: #556; cursor: pointer;
+            font-family: monospace; font-size: 12px; padding: 2px 6px; border-radius: 3px; }
+.sort-btn.active { background: #1e3a4a; color: #94d5ff; }
+
+#song-list { padding: 0 20px 20px; }
+.song-card {
+  border: 1px solid #1e3040; border-radius: 4px; padding: 12px 16px;
+  margin-top: 10px; cursor: pointer; transition: background .1s;
+}
+.song-card:hover { background: rgba(255,255,255,.03); }
+.song-title    { font-size: 15px; color: #7fffb2; font-weight: bold; }
+.song-composer { color: #94d5ff; font-size: 12px; margin-top: 2px; }
+.song-meta     { display: flex; gap: 16px; margin-top: 8px; color: #556; font-size: 11px; }
+.loading       { color: #445; padding: 40px; text-align: center; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>iReal Forum</h1>
+  <span id="nav-user"></span>
+  <span class="sep">|</span>
+  <a href="/editor.html">+ 发布谱子</a>
+</header>
+
+<div class="search-bar">
+  <input id="search-q"        placeholder="曲名搜索…">
+  <input id="search-composer" placeholder="作曲者…">
+  <select id="search-style">
+    <option value="">所有风格</option>
+    <option>Medium Swing</option><option>Ballad</option><option>Bossa Nova</option>
+    <option>Samba</option><option>Latin</option><option>Funk</option>
+    <option>Waltz</option><option>Pop</option><option>Rock</option>
+  </select>
+  <button class="btn" onclick="search()">搜索</button>
+  <button class="btn" onclick="clearSearch()">清除</button>
+</div>
+
+<div class="sort-bar">
+  排序：
+  <button class="sort-btn active" id="sort-new" onclick="setSort('new')">最新</button>
+  <button class="sort-btn"        id="sort-hot" onclick="setSort('hot')">最热</button>
+</div>
+
+<div id="song-list"><div class="loading">加载中…</div></div>
+
+<script src="/js/api.js"></script>
+<script>
+let currentSort = 'new'
+
+async function init() {
+  const { user } = await API.me()
+  const nav = document.getElementById('nav-user')
+  if (user) {
+    nav.innerHTML = `<a href="/user.html?u=${user.username}">${user.username}</a>
+      <span class="sep">|</span>
+      <a href="#" onclick="logout()">退出</a>`
+  } else {
+    nav.innerHTML = `<a href="/login.html">登录 / 注册</a>`
+  }
+  loadSongs()
+}
+
+async function logout() {
+  await API.logout()
+  location.reload()
+}
+
+function setSort(s) {
+  currentSort = s
+  document.getElementById('sort-new').classList.toggle('active', s === 'new')
+  document.getElementById('sort-hot').classList.toggle('active', s === 'hot')
+  loadSongs()
+}
+
+function search()      { loadSongs() }
+function clearSearch() {
+  document.getElementById('search-q').value        = ''
+  document.getElementById('search-composer').value = ''
+  document.getElementById('search-style').value    = ''
+  loadSongs()
+}
+
+async function loadSongs() {
+  const list = document.getElementById('song-list')
+  list.innerHTML = '<div class="loading">加载中…</div>'
+  const params = {
+    sort:     currentSort,
+    q:        document.getElementById('search-q').value,
+    composer: document.getElementById('search-composer').value,
+    style:    document.getElementById('search-style').value,
+  }
+  const songs = await API.getSongs(params)
+  if (!songs.length) { list.innerHTML = '<div class="loading">暂无结果</div>'; return }
+  list.innerHTML = songs.map(s => `
+    <div class="song-card" onclick="location.href='/song.html?id=${s.id}'">
+      <div class="song-title">${esc(s.title)}</div>
+      <div class="song-composer">${esc(s.composer) || '—'}</div>
+      <div class="song-meta">
+        <span>${s.version_count} 个版本</span>
+        <span>♥ ${s.total_likes}</span>
+        <span>${s.created_at.slice(0,10)}</span>
+      </div>
+    </div>
+  `).join('')
+}
+
+function esc(s) {
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+}
+
+init()
+</script>
+</body>
+</html>

@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>帖子详情 — iReal Forum</title>
+<style>
+* { box-sizing: border-box; }
+body { font-family: monospace; background: #1b2730; color: #e6e3da; margin: 0; font-size: 13px; }
+header { display: flex; align-items: center; gap: 12px; padding: 10px 20px;
+         background: #0d1a22; border-bottom: 1px solid #334; }
+header h1 { margin: 0; font-size: 16px; }
+header h1 a { color: #94d5ff; text-decoration: none; }
+.back { color: #556; font-size: 12px; text-decoration: none; }
+.back:hover { color: #94d5ff; }
+
+.container { max-width: 900px; margin: 0 auto; padding: 20px; }
+.song-header { margin-bottom: 20px; }
+.song-header h2 { margin: 0; font-size: 20px; color: #7fffb2; }
+.song-header .composer { color: #94d5ff; margin-top: 4px; }
+.fav-btn { background: none; border: 1px solid #445; color: #ffd700; padding: 4px 10px;
+           border-radius: 3px; cursor: pointer; font-family: monospace; font-size: 12px; margin-top: 8px; }
+.fav-btn:hover { background: #1e3a4a; }
+
+h3 { color: #94d5ff; font-size: 14px; margin: 24px 0 10px; border-bottom: 1px solid #334; padding-bottom: 6px; }
+
+.version-card {
+  border: 1px solid #1e3040; border-radius: 4px; padding: 12px 16px; margin-bottom: 12px;
+}
+.version-meta { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+.version-user { color: #94d5ff; }
+.version-user a { color: #94d5ff; text-decoration: none; }
+.version-user a:hover { text-decoration: underline; }
+.version-info { color: #556; font-size: 11px; }
+.version-actions { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+.like-btn { background: none; border: 1px solid #334; color: #e53; padding: 3px 10px;
+            border-radius: 3px; cursor: pointer; font-family: monospace; font-size: 12px; }
+.like-btn.liked { background: #2a1a1a; border-color: #e53; }
+.like-btn:hover { background: #2a1a1a; }
+.dl-btn  { background: #1e3a4a; border: 1px solid #445; color: #94d5ff; padding: 3px 10px;
+           border-radius: 3px; cursor: pointer; font-family: monospace; font-size: 12px;
+           text-decoration: none; }
+.dl-btn:hover { background: #2a4a5e; }
+
+.preview-wrap { margin-top: 10px; overflow: hidden; border-radius: 3px; }
+
+.comment-box { margin-top: 8px; display: flex; gap: 8px; }
+.comment-box textarea { flex: 1; background: #0d1a22; border: 1px solid #334; color: #e6e3da;
+  padding: 6px 8px; border-radius: 3px; font-family: monospace; font-size: 12px;
+  resize: vertical; min-height: 40px; }
+.comment-box textarea:focus { outline: none; border-color: #4af; }
+.comment-box button { align-self: flex-end; background: #1e3a4a; border: 1px solid #445;
+  color: #94d5ff; padding: 6px 14px; border-radius: 3px; cursor: pointer;
+  font-family: monospace; font-size: 12px; }
+.comment { padding: 8px 0; border-bottom: 1px solid #1e3040; }
+.comment .who { color: #94d5ff; font-size: 11px; }
+.comment .who a { color: #94d5ff; text-decoration: none; }
+.comment .when { color: #445; font-size: 11px; }
+.comment .text { margin-top: 4px; }
+.loading { color: #445; padding: 40px; text-align: center; }
+</style>
+</head>
+<body>
+
+<header>
+  <a class="back" href="/">← 返回</a>
+  <h1><a href="/">iReal Forum</a></h1>
+</header>
+
+<div class="container">
+  <div id="content"><div class="loading">加载中…</div></div>
+</div>
+
+<script src="/js/api.js"></script>
+<script src="/js/renderer.js"></script>
+<script>
+const songId = new URLSearchParams(location.search).get('id')
+let currentUser = null
+let data = null
+
+async function init() {
+  const { user } = await API.me()
+  currentUser = user
+  await loadSong()
+}
+
+async function loadSong() {
+  data = await API.getSong(songId)
+  render()
+}
+
+function render() {
+  const { song, versions, comments, myLikes, isFavorited } = data
+  const favLabel = isFavorited ? '★ 已收藏' : '☆ 收藏'
+
+  const versionsHtml = versions.map(v => {
+    const liked = myLikes.includes(v.id)
+    return `
+    <div class="version-card" id="v${v.id}">
+      <div class="version-meta">
+        <span class="version-user">
+          <a href="/user.html?u=${esc(v.username)}">${esc(v.username)}</a>
+        </span>
+        <span class="version-info">${esc(v.style)} · ${esc(v.key_sig)} · ${v.updated_at.slice(0,10)}</span>
+        <div class="version-actions">
+          <button class="like-btn ${liked?'liked':''}" onclick="toggleLike(${v.id}, this)">
+            ♥ ${v.likes}
+          </button>
+          <a class="dl-btn" href="${API.downloadUrl(songId, v.id)}" download>下载</a>
+        </div>
+      </div>
+      <div class="preview-wrap" id="preview-${v.id}">
+        <div class="loading" style="padding:16px">预览加载中…</div>
+      </div>
+    </div>`
+  }).join('')
+
+  const commentsHtml = comments.map(c => `
+    <div class="comment">
+      <span class="who"><a href="/user.html?u=${esc(c.username)}">${esc(c.username)}</a></span>
+      <span class="when"> · ${c.created_at.slice(0,10)}</span>
+      <div class="text">${esc(c.content)}</div>
+    </div>
+  `).join('') || '<div style="color:#445;font-size:12px">暂无评论</div>'
+
+  const commentInput = currentUser ? `
+    <div class="comment-box">
+      <textarea id="comment-input" placeholder="写下你的评论…"></textarea>
+      <button onclick="submitComment()">发送</button>
+    </div>` : `<div style="color:#445;font-size:12px;margin-top:8px"><a href="/login.html" style="color:#4af">登录</a> 后可以评论</div>`
+
+  document.getElementById('content').innerHTML = `
+    <div class="song-header">
+      <h2>${esc(song.title)}</h2>
+      <div class="composer">${esc(song.composer) || '—'}</div>
+      ${currentUser ? `<button class="fav-btn" id="fav-btn" onclick="toggleFav()">${favLabel}</button>` : ''}
+    </div>
+    <h3>版本（${versions.length}）</h3>
+    ${versionsHtml || '<div style="color:#445">暂无版本</div>'}
+    <h3>评论（${comments.length}）</h3>
+    ${commentInput}
+    <div id="comments-list" style="margin-top:12px">${commentsHtml}</div>
+  `
+
+  // 渲染每个版本的小图预览（需要服务器返回 ireal_url 的替代方案：先占位，未来实现）
+  versions.forEach(v => renderPreview(v))
+}
+
+async function renderPreview(v) {
+  const el = document.getElementById(`preview-${v.id}`)
+  if (!el) return
+  try {
+    const { ireal_url } = await API.previewUrl(data.song.id, v.id)
+    const wrap = document.createElement('div')
+    wrap.style.cssText = 'overflow:hidden;max-height:160px;position:relative;'
+    const inner = document.createElement('div')
+    wrap.appendChild(inner)
+    el.innerHTML = ''
+    el.appendChild(wrap)
+    renderChart(inner, ireal_url, { scale: 0.38 })
+    // 遮罩渐隐底部
+    const fade = document.createElement('div')
+    fade.style.cssText = 'position:absolute;bottom:0;left:0;right:0;height:40px;background:linear-gradient(transparent,#0d1a22);'
+    wrap.appendChild(fade)
+  } catch {
+    el.innerHTML = '<div style="padding:8px;color:#334;font-size:11px">预览不可用</div>'
+  }
+}
+
+async function toggleLike(versionId, btn) {
+  if (!currentUser) { location.href = '/login.html'; return }
+  const { liked } = await API.like(songId, versionId)
+  const countMatch = btn.textContent.match(/\d+/)
+  const count = countMatch ? Number(countMatch[0]) + (liked ? 1 : -1) : 0
+  btn.textContent = `♥ ${count}`
+  btn.classList.toggle('liked', liked)
+}
+
+async function toggleFav() {
+  if (!currentUser) { location.href = '/login.html'; return }
+  const { favorited } = await API.favorite(songId)
+  document.getElementById('fav-btn').textContent = favorited ? '★ 已收藏' : '☆ 收藏'
+}
+
+async function submitComment() {
+  const input   = document.getElementById('comment-input')
+  const content = input.value.trim()
+  if (!content) return
+  await API.comment(songId, content)
+  input.value = ''
+  await loadSong()
+}
+
+function esc(s) {
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+}
+
+init()
+</script>
+</body>
+</html>
