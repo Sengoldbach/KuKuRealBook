@@ -2,17 +2,53 @@
 <html>
 <head><meta charset="utf-8"><title>iReal Editor</title>
 <style>
+/* ── Themes ── */
+:root {
+  --bg-page:    #1b2730; --bg-bar:     #0d1a22; --bg-toolbar: #13222c;
+  --c-text:     #e6e3da; --c-label:    #556;    --c-border:   #334;
+  --c-input-bg: #1b2730;
+  --c-btn-bg:   #1e3a4a; --c-btn-bd:   #445;    --c-btn-txt:  #94d5ff;
+  --c-btn-hov:  #2a4a5e; --c-sep:      #334;    --c-opt-bg:   #1b2730;
+  --c-cell-bd:  #1e3040; --c-cell-hov: rgba(255,255,255,.03);
+  --c-sel-bg:   #0e2a38; --c-sel-out:  #4af;
+  --c-chord:    #7fffb2; --c-space:    #1e3040;
+  --c-nc:       #ffd700; --c-pause:    #888;    --c-repeat:   #94d5ff;
+  --c-bl-s:     #668;    --c-bl-d:     #bbb;    --c-bl-r:     #e53;
+  --c-mark-bg:  #c0392b; --c-mark-txt: #fff;
+  --c-volta:    #87ceeb; --c-volta-bg: #1a2e3a;
+  --c-ts:       #ffd700; --c-annot:    #87ceeb;
+  --c-inp-bg:   #0d1a22; --c-inp-txt:  #7fffb2; --c-inp-bd:   #4af;
+  --c-status:   #445;    --c-status-bd:#223;
+}
+body.light {
+  --bg-page:    #f0ede6; --bg-bar:     #e2ddd5; --bg-toolbar: #e8e4dc;
+  --c-text:     #1a1a1a; --c-label:    #999;    --c-border:   #ccc;
+  --c-input-bg: #f8f5f0;
+  --c-btn-bg:   #d8d4cc; --c-btn-bd:   #bbb;    --c-btn-txt:  #1a4a7a;
+  --c-btn-hov:  #c8c4bc; --c-sep:      #ccc;    --c-opt-bg:   #f0ede6;
+  --c-cell-bd:  rgba(0,0,0,0.07); --c-cell-hov: rgba(0,0,0,.04);
+  --c-sel-bg:   #c5dff0; --c-sel-out:  #2a7abd;
+  --c-chord:    #111;    --c-space:    #ccc;
+  --c-nc:       #8a6600; --c-pause:    #999;    --c-repeat:   #2a5a8a;
+  --c-bl-s:     #555;    --c-bl-d:     #222;    --c-bl-r:     #c0392b;
+  --c-mark-bg:  #c0392b; --c-mark-txt: #fff;
+  --c-volta:    #2a6a9a; --c-volta-bg: #dce8f0;
+  --c-ts:       #8a6600; --c-annot:    #2a6a9a;
+  --c-inp-bg:   #fff;    --c-inp-txt:  #1a5c30; --c-inp-bd:   #2a7abd;
+  --c-status:   #aaa;    --c-status-bd:#ddd;
+}
+
 * { box-sizing: border-box; }
-body { font-family: monospace; background: #1b2730; color: #e6e3da; margin: 0; font-size: 13px; }
+body { font-family: monospace; background: var(--bg-page); color: var(--c-text); margin: 0; font-size: 13px; }
 
 /* ── Meta bar ── */
 #meta-bar {
   display: flex; gap: 8px; align-items: center; padding: 8px 12px;
-  background: #0d1a22; border-bottom: 1px solid #334; flex-wrap: wrap;
+  background: var(--bg-bar); border-bottom: 1px solid var(--c-border); flex-wrap: wrap;
 }
-#meta-bar label { font-size: 11px; color: #556; }
+#meta-bar label { font-size: 11px; color: var(--c-label); }
 #meta-bar input, #meta-bar select {
-  background: #1b2730; color: #e6e3da; border: 1px solid #334;
+  background: var(--c-input-bg); color: var(--c-text); border: 1px solid var(--c-border);
   border-radius: 3px; padding: 3px 6px; font-family: monospace; font-size: 12px;
 }
 #meta-title    { width: 160px; }
@@ -23,89 +59,104 @@ body { font-family: monospace; background: #1b2730; color: #e6e3da; margin: 0; f
 /* ── Toolbar ── */
 #toolbar {
   display: flex; gap: 6px; align-items: center; padding: 6px 12px;
-  background: #13222c; border-bottom: 1px solid #334; flex-wrap: wrap;
+  background: var(--bg-toolbar); border-bottom: 1px solid var(--c-border); flex-wrap: wrap;
 }
 .btn, #toolbar button, #toolbar select {
-  background: #1e3a4a; border: 1px solid #445; color: #94d5ff;
+  background: var(--c-btn-bg); border: 1px solid var(--c-btn-bd); color: var(--c-btn-txt);
   padding: 4px 10px; border-radius: 3px; cursor: pointer; font-size: 11px;
   font-family: monospace; white-space: nowrap;
 }
-.btn:hover, #toolbar button:hover { background: #2a4a5e; }
-#toolbar .sep { width: 1px; height: 18px; background: #334; margin: 0 2px; }
-#toolbar select { color: #e6e3da; padding: 3px 6px; }
-#toolbar select option { background: #1b2730; }
+.btn:hover, #toolbar button:hover { background: var(--c-btn-hov); }
+#toolbar .sep { width: 1px; height: 18px; background: var(--c-sep); margin: 0 2px; }
+#toolbar select { color: var(--c-text); padding: 3px 6px; }
+#toolbar select option { background: var(--c-opt-bg); }
 
 /* ── Grid ── */
 #grid-area { padding: 16px 12px; }
 .grid-wrap { padding-top: 22px; }
-.grid { display: grid; grid-template-columns: repeat(16, 1fr); row-gap: 12px; }
+.grid { display: grid; grid-template-columns: repeat(16, 1fr); row-gap: 22px; }
+.no-grid .gcell { border-color: transparent !important; }
 .gcell {
-  height: 44px; border: 1px solid #1e3040; display: flex;
-  align-items: center; justify-content: center; font-size: 12px;
-  position: relative; background: #0d1a22; min-width: 0; overflow: visible;
+  height: 52px; border: 1px solid var(--c-cell-bd); display: flex;
+  align-items: center; justify-content: center; font-size: 16px;
+  position: relative; background: transparent; min-width: 0; overflow: visible;
   cursor: pointer; user-select: none;
 }
-.gcell:hover { background: #121f28; }
-.gcell.selected { background: #0e2a38; outline: 2px solid #4af; outline-offset: -2px; z-index: 2; }
-.gcell.chord  { color: #7fffb2; font-weight: bold; background: rgba(127,255,178,.06); }
-.gcell.space  { color: #1e3040; }
-.gcell.nc     { color: #ffd700; font-style: italic; font-size: 9px; }
-.gcell.pause  { color: #888; font-size: 18px; }
-.gcell.repeat { color: #94d5ff; font-size: 16px; }
-.gcell.repeat2{ color: #94d5ff; font-size: 11px; letter-spacing: -1px; }
+.gcell:hover { background: var(--c-cell-hov); }
+.gcell.selected { background: var(--c-sel-bg); outline: 2px solid var(--c-sel-out); outline-offset: -2px; z-index: 2; }
+.gcell.chord  { color: var(--c-chord); font-weight: bold; background: transparent;
+                justify-content: flex-start; align-items: flex-start;
+                padding-left: 4px; padding-top: 4px; z-index: 2; overflow: visible; }
+.gcell.space  { color: var(--c-space); }
+.gcell.nc     { color: var(--c-nc); font-style: italic; font-size: 20px; }
+.gcell.pause  { color: var(--c-pause); font-size: 18px; }
+.gcell.repeat  { color: var(--c-repeat); width: calc(200% + 2px); z-index: 3; }
+.gcell.repeat2 { color: var(--c-repeat); width: calc(200% + 2px); z-index: 3; }
+.gcell.repeat.size-small  { width: 100%; }
+.gcell.repeat2.size-small { width: 100%; }
+
+/* large/small size modes */
+.gcell.size-small svg.csym { transform: scaleX(0.62); transform-origin: left center; }
+
+/* chord SVG */
+svg.csym { overflow: visible; display: block; pointer-events: none; }
+svg.csym text { font-family: monospace; fill: currentColor; }
+.csym-r { font-size: 36px; font-weight: bold; }
+.csym-a { font-size: 16px; font-weight: bold; }
+.csym-q { font-size: 18px; }
+.csym-b { font-size: 16px; font-weight: bold; }
 
 /* barlines */
 .gcell .bl { position: absolute; left: 0; top: 0; bottom: 0; z-index: 4; pointer-events: none; }
-.gcell .br { position: absolute; right: 0; top: 0; bottom: 0; z-index: 4; pointer-events: none; }
-.bl.single  { border-left: 2px solid #668; }
-.br.single  { border-right: 2px solid #668; }
-.bl.double  { border-left: 4px double #bbb; }
-.br.double  { border-right: 4px double #bbb; }
-.bl.rep-open  { border-left: 3px solid #4af; box-shadow: 3px 0 0 #4af; }
-.bl.rep-close { border-left: 5px solid #4af; box-shadow: 3px 0 0 #4af; }
-.br.rep-close { border-right: 3px solid #4af; box-shadow: -3px 0 0 #4af; }
-.bl.final { border-left: 5px solid #bbb; }
-.br.final { border-right: 5px solid #bbb; }
+.gcell .br { position: absolute; left: 100%; top: 0; bottom: 0; z-index: 4; pointer-events: none; }
+.bl.single  { border-left: 2px solid var(--c-bl-s); left: -2px; }
+.br.single  { border-left: 2px solid var(--c-bl-s); }
+.bl.double  { border-left: 4px double var(--c-bl-d); left: -2px; }
+.br.double  { border-left: 4px double var(--c-bl-d); }
+/* rep-open / rep-close / final rendered via inline SVG */
 
 /* badges */
 .gcell .mark {
   position: absolute; bottom: 100%; left: 0; margin-bottom: 2px;
-  font-size: 8px; font-weight: bold; background: #c0392b;
-  color: #fff; padding: 1px 4px; border-radius: 2px; white-space: nowrap; z-index: 5;
+  font-size: 8px; font-weight: bold; background: var(--c-mark-bg);
+  color: var(--c-mark-txt); padding: 1px 4px; border-radius: 2px; white-space: nowrap; z-index: 5;
   pointer-events: none;
 }
 .gcell .volta {
-  position: absolute; bottom: 100%; left: 14px; margin-bottom: 2px;
-  font-size: 8px; font-weight: bold; color: #87ceeb; background: #1a2e3a;
-  padding: 1px 3px; border-radius: 2px; white-space: nowrap; border-bottom: 2px solid #87ceeb;
+  position: absolute; bottom: 100%; left: 0; margin-bottom: 2px;
+  font-size: 10px; font-weight: bold; color: var(--c-bl-r);
+  padding: 1px 22px 1px 3px; white-space: nowrap;
+  border-left: 2px solid var(--c-bl-r);
+  border-top:  2px solid var(--c-bl-r);
   pointer-events: none;
 }
 .gcell .ts {
-  position: absolute; right: calc(100% + 3px); top: 50%; transform: translateY(-50%);
-  font-size: 11px; font-weight: bold; color: #ffd700; line-height: 1;
+  position: absolute; right: calc(100% + 4px); top: 50%; transform: translateY(-50%);
+  font-size: 16px; font-weight: bold; color: var(--c-ts); line-height: 1;
   display: flex; flex-direction: column; align-items: center; z-index: 5;
   pointer-events: none;
 }
-.gcell .ts span { display: block; line-height: 1.1; }
+.gcell .ts span { display: block; line-height: 1.5; }
+.gcell .ts span:first-child { border-bottom: 1.5px solid currentColor; }
 .gcell .annot {
   position: absolute; top: 100%; left: 0; margin-top: 3px;
-  font-size: 9px; color: #87ceeb; white-space: nowrap; z-index: 5;
+  font-size: 14px; color: var(--c-annot); white-space: nowrap; z-index: 5;
   pointer-events: none; overflow: visible;
 }
 
 /* ── Chord input overlay ── */
 #chord-input {
   display: none; position: fixed; z-index: 100;
-  background: #0d1a22; color: #7fffb2; border: 2px solid #4af;
+  background: var(--c-inp-bg); color: var(--c-inp-txt); border: 2px solid var(--c-inp-bd);
   border-radius: 3px; padding: 4px 6px; font-family: monospace; font-size: 13px;
   font-weight: bold; outline: none; min-width: 60px;
 }
 
 /* ── Status bar ── */
-#status { padding: 4px 12px; font-size: 10px; color: #445; border-top: 1px solid #223; }
+#status { padding: 4px 12px; font-size: 10px; color: var(--c-status); border-top: 1px solid var(--c-status-bd); }
 </style>
 </head>
-<body>
+<body class="light">
 
 <div id="meta-bar">
   <label>Title <input id="meta-title" placeholder="Untitled" oninput="song.title=this.value"></label>
@@ -135,14 +186,22 @@ body { font-family: monospace; background: #1b2730; color: #e6e3da; margin: 0; f
   <button onclick="insertSpace()" title="Insert space cell">+ Space</button>
 
   <span class="sep"></span>
-  <select onchange="insertBarline(this.value);this.selectedIndex=0">
-    <option value="">Barline…</option>
+  <select id="bl-left" onchange="setLeftBarline(this.value)">
+    <option value="">Left barline</option>
+    <option value="none">— None</option>
     <option value="|">| Single</option>
-    <option value="[">[ Double open</option>
-    <option value="]">] Double close</option>
+    <option value="[">[  Double</option>
     <option value="{">{  Repeat open</option>
     <option value="}">}  Repeat close</option>
-    <option value="Z">Z Final</option>
+    <option value="Z">Z  Final</option>
+  </select>
+  <select id="bl-right" onchange="setRightBarline(this.value)">
+    <option value="">Right barline</option>
+    <option value="none">— None</option>
+    <option value="|">| Single</option>
+    <option value="]">]  Double</option>
+    <option value="}">}  Repeat close</option>
+    <option value="Z">Z  Final</option>
   </select>
 
   <select onchange="insertMark(this.value);this.selectedIndex=0">
@@ -178,6 +237,10 @@ body { font-family: monospace; background: #1b2730; color: #e6e3da; margin: 0; f
   <span class="sep"></span>
   <button onclick="transpose(-1)">♭ −1</button>
   <button onclick="transpose(1)">♯ +1</button>
+
+  <span class="sep"></span>
+  <button id="theme-btn" onclick="toggleTheme()">🌙 Night</button>
+  <button id="grid-btn" onclick="toggleGrid()">格线</button>
 </div>
 
 <div id="grid-area">
@@ -211,6 +274,15 @@ function saveUndo() {
   undoStack.push(JSON.stringify(song.tokens))
   if (undoStack.length > 50) undoStack.shift()
 }
+function toggleTheme() {
+  const isLight = document.body.classList.toggle('light')
+  document.getElementById('theme-btn').textContent = isLight ? '🌙 Night' : '☀ Day'
+}
+function toggleGrid() {
+  const hidden = document.getElementById('grid-area').classList.toggle('no-grid')
+  document.getElementById('grid-btn').textContent = hidden ? '格线(隐)' : '格线'
+}
+
 function undo() {
   if (!undoStack.length) { setStatus('Nothing to undo'); return }
   song.tokens = JSON.parse(undoStack.pop())
@@ -302,7 +374,7 @@ function tokenize(s) {
     if (s[i]==='U') { tokens.push({raw:'U', type:'mark', cells:0, barline:false, extra:'End'}); i++; continue }
     if (s[i]==='f') { tokens.push({raw:'f', type:'mark', cells:0, barline:false, extra:'𝄐'}); i++; continue }
     if (s[i]===',') { tokens.push({raw:',', type:'sep', cells:0, barline:false}); i++; continue }
-    if (s[i]==='l') { tokens.push({raw:'l', type:'size', cells:0, barline:false, extra:'large'}); i++; continue }
+    if (s[i]==='l') { tokens.push({raw:'l', type:'size', cells:0, barline:false, extra:'normal'}); i++; continue }
     if (s[i]==='s' && s[i+1]!=='u') { tokens.push({raw:'s', type:'size', cells:0, barline:false, extra:'small'}); i++; continue }
     const cm = s.slice(i).match(/^[A-GW][\+\-\^\dhob#suadt]*(\/[A-G][#b]?)?/)
     if (cm) { tokens.push({raw:cm[0], type:'chord', cells:1, barline:false}); i+=cm[0].length; continue }
@@ -336,22 +408,121 @@ function buildIrealUrl() {
 // ── Renderer ───────────────────────────────────────────────────
 function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') }
 
+const REP_W = 7    // rep-open / rep-close SVG width
+const FIN_W = 4    // final SVG width
+
+function repBarlineSVG(type) {
+  const H = 52, r = 1.25, cy1 = 17, cy2 = 35
+  const col = 'var(--c-bl-r)', cold = 'var(--c-bl-d)'
+  const style = `position:absolute;left:0;top:0;overflow:visible;pointer-events:none`
+  if (type === 'rep-open') {
+    return `<svg width="${REP_W}" height="${H}" style="${style}">` +
+      `<rect x="0"    y="0" width="1.5"  height="${H}" fill="${col}"/>` +
+      `<rect x="2.75" y="0" width="0.75" height="${H}" fill="${col}"/>` +
+      `<circle cx="5.5" cy="${cy1}" r="${r}" fill="${col}"/>` +
+      `<circle cx="5.5" cy="${cy2}" r="${r}" fill="${col}"/>` +
+      `</svg>`
+  }
+  if (type === 'rep-close') {
+    return `<svg width="${REP_W}" height="${H}" style="${style}">` +
+      `<circle cx="1"   cy="${cy1}" r="${r}" fill="${col}"/>` +
+      `<circle cx="1"   cy="${cy2}" r="${r}" fill="${col}"/>` +
+      `<rect x="3"    y="0" width="0.75" height="${H}" fill="${col}"/>` +
+      `<rect x="5"    y="0" width="1.5"  height="${H}" fill="${col}"/>` +
+      `</svg>`
+  }
+  if (type === 'final') {
+    return `<svg width="${FIN_W}" height="${H}" style="${style}">` +
+      `<rect x="0"    y="0" width="0.75" height="${H}" fill="${cold}"/>` +
+      `<rect x="2.25" y="0" width="1.75" height="${H}" fill="${cold}"/>` +
+      `</svg>`
+  }
+  return ''
+}
+
+function makeRightBarlineHtml(btype) {
+  if (btype === 'single') return '<span class="br single"></span>'
+  if (btype === 'double') return '<span class="br double"></span>'
+  return ''
+}
+
+function repeatSVG(type) {
+  const H = 40, sw = 2.5, r = 3.5
+  const base = `<svg width="40" height="${H}" style="display:block;overflow:visible">`
+  if (type === '%') {
+    return base +
+      `<circle cx="8"  cy="9"      r="${r}" fill="currentColor"/>` +
+      `<line x1="7" y1="${H-4}" x2="31" y2="4" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round"/>` +
+      `<circle cx="30" cy="${H-9}" r="${r}" fill="currentColor"/>` +
+      `</svg>`
+  }
+  // '//'
+  return base +
+    `<circle cx="5"  cy="9"      r="${r-0.5}" fill="currentColor"/>` +
+    `<line x1="4"  y1="${H-4}" x2="17" y2="4" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round"/>` +
+    `<line x1="19" y1="${H-4}" x2="32" y2="4" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round"/>` +
+    `<circle cx="34" cy="${H-9}" r="${r-0.5}" fill="currentColor"/>` +
+    `</svg>`
+}
+
+// Approximate monospace advance width at given font-size
+function monoW(fs) { return fs * 0.603 }
+
+function renderChordSVG(raw) {
+  // W = invisible root, show only bass
+  if (raw.startsWith('W')) {
+    const b = esc(raw.slice(1))
+    return `<svg class="csym" height="42"><text x="2" y="34" class="csym-b">${b}</text></svg>`
+  }
+  const p = parseRoot(raw)
+  if (!p) return `<svg class="csym" height="42"><text x="2" y="34" class="csym-r">${esc(raw)}</text></svg>`
+
+  const letter  = p.root[0]
+  const acc     = p.root.slice(1)
+  const accD    = acc === 'b' ? '♭' : acc === '#' ? '♯' : ''
+  const qualD   = esc(p.quality.replace(/\^/g,'Δ').replace(/h/g,'ø').replace(/o/g,'°'))
+  const bassD   = p.bass ? esc('/' + p.bass) : ''
+
+  const RF = 36, AF = 16, QF = 18, BF = 16
+  const rx = 4,  ry = 34          // root baseline
+  const mx = rx + monoW(RF) + 1  // mods x (accidental / quality / bass all share this x)
+  const ay = ry - RF * 0.58       // accidental baseline (upper superscript)
+  const by = ry + QF              // bass baseline: one quality line below root
+  const hasBass = !!bassD
+  const svgH = hasBass ? by + 4 : ry + 10
+
+  let s = `<text x="${rx}" y="${ry}" class="csym-r">${letter}</text>`
+  if (accD)  s += `<text x="${mx.toFixed(1)}" y="${ay.toFixed(1)}" class="csym-a">${accD}</text>`
+  if (qualD) s += `<text x="${mx.toFixed(1)}" y="${ry}"            class="csym-q">${qualD}</text>`
+  if (bassD) s += `<text x="${mx.toFixed(1)}" y="${by}"            class="csym-b">${bassD}</text>`
+
+  return `<svg class="csym" height="${svgH}" overflow="visible">${s}</svg>`
+}
+
 function render() {
   const grid = document.getElementById('grid')
   cellMap = []
-  let html = ''
 
   let pendingBarlineLeft = null
   let pendingMark = null
   let pendingTimeSig = null
   let pendingVolta = null
   let pendingAnnot = null
+  let currentSize = 'normal'
+  const parts = []
+
+  function findLastCell() {
+    for (let i = parts.length - 1; i >= 0; i--)
+      if (parts[i].type === 'cell') return parts[i]
+    return null
+  }
 
   song.tokens.forEach((t, tidx) => {
-    if (t.type === 'size' || t.type === 'sep' || t.type === 'unknown') return
+    if (t.type === 'sep' || t.type === 'unknown') return
+    if (t.type === 'size') { currentSize = t.extra; return }
     if (t.type === 'layout') {
-      const h = t.raw.length * 12
-      html += `<div style="grid-column:1/-1;height:${h}px;"></div>`
+      const h = t.raw.length * 22
+      parts.push({type:'layout', html:`<div style="grid-column:1/-1;height:${h}px;"></div>`})
       return
     }
     if (t.type === 'timesig')    { pendingTimeSig = t.raw.slice(1); return }
@@ -361,13 +532,17 @@ function render() {
       else if (t.raw.startsWith('N')) pendingVolta = t.raw.slice(1)
       return
     }
-    if (t.barline && t.cells === 0) { pendingBarlineLeft = t.barlineType; return }
+    if (t.barline && t.cells === 0) {
+      const prev = findLastCell()
+      if (prev) prev.brHtml = makeRightBarlineHtml(t.barlineType)
+      pendingBarlineLeft = t.barlineType
+      return
+    }
 
     const isSelected = selectedSet.has(tidx)
 
     for (let c = 0; c < t.cells; c++) {
       const isFirst = c === 0
-      const isLast  = c === t.cells - 1
       const cellIdx = cellMap.length
       cellMap.push(tidx)
 
@@ -376,26 +551,28 @@ function render() {
       let inner = ''
 
       if (t.type === 'chord') {
-        if      (t.extra === '%')   { cls += ' repeat';  inner = '%' }
-        else if (t.extra === '//')  { cls += ' repeat2'; inner = '//' }
+        if      (t.extra === '%')   { cls += ' repeat';  inner = repeatSVG('%') }
+        else if (t.extra === '//')  { cls += ' repeat2'; inner = repeatSVG('//') }
         else if (t.extra === '/')   { cls += ' pause';   inner = '/' }
         else if (t.extra === 'N.C.'){ cls += ' nc';      inner = 'N.C.' }
         else {
           cls += ' chord'
-          const disp = t.raw.startsWith('W') ? t.raw.slice(1) : t.raw
-          inner = esc(disp)
+          inner = renderChordSVG(t.raw)
         }
       } else {
         cls += ' space'
       }
 
-      let blHtml = '', brHtml = ''
+      if (currentSize === 'small' && t.type === 'chord') cls += ' size-small'
+
+      let blHtml = ''
       if (isFirst && pendingBarlineLeft) {
-        blHtml = `<span class="bl ${pendingBarlineLeft}"></span>`
+        const btype = pendingBarlineLeft
+        const rightAligned = btype === 'rep-close' || btype === 'final'
+        const w = btype === 'final' ? FIN_W : REP_W
+        const bstyle = rightAligned ? ` style="left:${-w}px"` : ''
+        blHtml = `<span class="bl ${btype}"${bstyle}>${repBarlineSVG(btype)}</span>`
         pendingBarlineLeft = null
-      }
-      if (isLast && t.barline && blHtml === '') {
-        brHtml = `<span class="br ${t.barlineType||'single'}"></span>`
       }
 
       let markHtml = ''
@@ -410,25 +587,40 @@ function render() {
       }
       let tsHtml = ''
       if (isFirst && pendingTimeSig) {
-        const top = pendingTimeSig[0] || '?', bot = pendingTimeSig[1] || pendingTimeSig[0] || '?'
+        const TS_MAP = {
+          '22':['2','2'],'24':['2','4'],'34':['3','4'],'44':['4','4'],
+          '54':['5','4'],'64':['6','4'],'74':['7','4'],'54':['5','4'],
+          '38':['3','8'],'68':['6','8'],'98':['9','8'],
+          '12':['12','8'],'128':['12','8']
+        }
+        const mapped = TS_MAP[pendingTimeSig]
+        const top = mapped ? mapped[0] : (pendingTimeSig.slice(0,-1)||'?')
+        const bot = mapped ? mapped[1] : (pendingTimeSig.slice(-1)||'?')
         tsHtml = `<span class="ts"><span>${top}</span><span>${bot}</span></span>`
         pendingTimeSig = null
       }
       let annotHtml = ''
       if (isFirst && pendingAnnot) {
-        const am = pendingAnnot.match(/^\*0(\d+)(.*)/)
-        const shift = am ? parseInt(am[1]) : 0
+        const am = pendingAnnot.match(/^\*(\d{2})(.*)/)
+        const shift = am ? Math.min(parseInt(am[1]), 60) : 0
         const atext = am ? am[2] : pendingAnnot
-        const astyle = shift ? ` style="transform:translateY(-${shift}px)"` : ''
+        const astyle = shift ? ` style="transform:translateY(-${Math.round(shift * 1.2)}px)"` : ''
         annotHtml = `<span class="annot"${astyle}>${esc(atext).replace(/\/\//g, '<br>')}</span>`
         pendingAnnot = null
       }
 
-      html += `<div class="${cls}" data-tidx="${tidx}" data-cidx="${cellIdx}">${blHtml}${brHtml}${markHtml}${voltaHtml}${tsHtml}${annotHtml}${inner}</div>`
+      parts.push({type:'cell', tidx, cellIdx, cls, inner, blHtml, brHtml:'', markHtml, voltaHtml, tsHtml, annotHtml})
     }
-
-    if (t.barline && t.cells > 0) pendingBarlineLeft = t.barlineType
   })
+
+  let html = ''
+  for (const p of parts) {
+    if (p.type === 'layout') {
+      html += p.html
+    } else {
+      html += `<div class="${p.cls}" data-tidx="${p.tidx}" data-cidx="${p.cellIdx}">${p.blHtml}${p.brHtml}${p.markHtml}${p.voltaHtml}${p.tsHtml}${p.annotHtml}${p.inner}</div>`
+    }
+  }
 
   grid.innerHTML = html
 }
@@ -535,6 +727,53 @@ function navigateTokens(dir) {
   const cur = indices.indexOf(focusTokenIdx)
   const next = cur === -1 ? 0 : Math.max(0, Math.min(indices.length-1, cur + dir))
   selectToken(indices[next], false)
+}
+
+// ── Barline editing ────────────────────────────────────────────
+const BARLINE_MAP = {'|':'single','[':'double',']':'double','{':'rep-open','}':'rep-close','Z':'final'}
+
+function findAdjacentBarline(tidx, dir) {
+  // dir: -1 = look left, +1 = look right
+  for (let i = tidx + dir; i >= 0 && i < song.tokens.length; i += dir) {
+    const t = song.tokens[i]
+    if (t.type === 'barline') return i
+    if (t.cells > 0) return -1
+  }
+  return -1
+}
+
+function applyBarline(side, value) {
+  if (focusTokenIdx < 0) return
+  saveUndo()
+  const dir = side === 'left' ? -1 : 1
+  const bidx = findAdjacentBarline(focusTokenIdx, dir)
+  if (value === 'none') {
+    if (bidx >= 0) song.tokens.splice(bidx, 1)
+  } else {
+    const tok = {raw: value, type:'barline', cells:0, barline:true, barlineType: BARLINE_MAP[value]}
+    if (bidx >= 0) song.tokens[bidx] = tok
+    else {
+      const at = side === 'left' ? focusTokenIdx : focusTokenIdx + 1
+      song.tokens.splice(at, 0, tok)
+    }
+  }
+  render(); updateBarlineSelects()
+}
+
+function setLeftBarline(v)  { if (v === '') return; applyBarline('left',  v) }
+function setRightBarline(v) { if (v === '') return; applyBarline('right', v) }
+
+function updateBarlineSelects() {
+  if (focusTokenIdx < 0) {
+    document.getElementById('bl-left').value  = ''
+    document.getElementById('bl-right').value = ''
+    return
+  }
+  const RAW_FOR_TYPE = {single:'|', double:'[', 'rep-open':'{', 'rep-close':'}', final:'Z'}
+  const li = findAdjacentBarline(focusTokenIdx, -1)
+  const ri = findAdjacentBarline(focusTokenIdx, +1)
+  document.getElementById('bl-left').value  = li >= 0 ? (RAW_FOR_TYPE[song.tokens[li].barlineType] || '') : 'none'
+  document.getElementById('bl-right').value = ri >= 0 ? (RAW_FOR_TYPE[song.tokens[ri].barlineType] || '') : 'none'
 }
 
 // ── Insert / Delete ────────────────────────────────────────────
@@ -717,6 +956,7 @@ function updateMetaBar() {
 }
 
 function updateStatus() {
+  updateBarlineSelects()
   if (focusTokenIdx < 0) { setStatus('Click a cell to select · Type to enter chord · Del to delete · ←/→ to navigate'); return }
   const t = song.tokens[focusTokenIdx]
   setStatus(`Token [${focusTokenIdx}] type:${t.type} raw:"${t.raw}"`)
@@ -773,7 +1013,9 @@ document.getElementById('grid').addEventListener('click', e => {
 })
 
 // ── Init ───────────────────────────────────────────────────────
-window.onload = () => { newSong() }
+window.onload = () => {
+  loadFromUrl(decodeURIComponent("irealb://%EF%BC%9F01%2D%E5%AD%A4%E7%8B%AC%E6%82%A3%E8%80%85=%E9%99%88%E5%A5%95%E8%BF%85%EF%BC%88%E6%96%B9%E5%A4%A7%E5%90%8C%EF%BC%89==Kukumber%E5%88%B6%E8%B0%B1=Ab==1r34LbKcu7s7bEZ4AbadbA%20%2C7%2DbB%20%2CC%2FbA%2C%20%5EbDZL%2BbA%7CQyX9d2%2FE%2CL4Ti%2A%7C%E5%96%8A%20%E8%83%BD%E4%B8%8D%E5%8D%B4%2AA%3C%2A0%E7%A7%8D%E6%98%AF%20%E7%81%AF%E5%85%89%E8%81%9A%20%2F%2F%E5%86%B7%E5%BE%88%E5%8D%B4%E5%BF%83%20%E6%B0%94%E6%B0%9B%E7%83%AD%E7%82%92%20%E5%A3%B0%E5%91%BC%E6%AC%A2%20%E5%A3%B0%E7%AC%91%E6%AC%A21%2F%2F6%E8%92%99%E6%81%A9%20%20%E6%88%91%7BZLsu%E3%80%82%E7%AD%89%E4%B8%80%E7%AD%89%E5%96%8A%2F2%E7%AC%91%E8%B6%8A%E5%A4%A7%20%E4%BA%BA%E6%89%B0%E8%99%9A%E7%A9%BA%20%E7%81%AF%E5%85%B3%E4%B8%80%E4%B8%87%2F%2F%20%EF%BC%8C%E6%9B%B4%E5%86%B7%E6%B8%A9%E5%AE%A4%20%E6%B8%A9%E4%BD%93%E6%BB%A1%E6%8C%A4%20%E5%BF%8D%E6%AE%8B%E6%98%AF%E8%B6%8A%20%E5%A3%B0%E6%88%91%E5%8D%B4%E4%B8%8D%E8%83%BD%20%2F%E3%80%82%E7%AD%89%E4%B8%80%E7%AD%89ZL%5EbAAb%5E7%2FZLC%2F9ddabA%209ddbaDZL%5EbA%207%2DbBZLCBb%2D7%20%20%5EbD%3E%E5%AF%9E%E5%AF%82%E8%B0%88%E4%B8%8D%2006%2F%2F1%20%E7%A0%B4%E7%9C%8B%E4%BA%BA%E6%80%95%20%2F%2F%EF%BC%8C%E8%BF%87%E6%8E%A9%E7%AC%91%E7%94%A8%20%E6%B3%AA%E6%97%B6%E7%9C%BC%E6%8E%89%20%EF%BC%8C%E9%BB%98%E5%B9%BD%E8%83%BD%E8%BF%98%20%E6%88%91%E6%9C%8D%E4%BD%A9%E7%9C%9F%E6%88%91%E9%A1%BE%E8%99%91%E5%A5%BD%E5%A4%9A%EF%BC%8C%2A%3CYYY%E5%BC%B1%E8%84%86%E6%88%91%E8%BF%9E%20%E5%BF%AB%E6%B4%BB%2F%2F2%20%E8%84%B1%E9%80%83%E5%88%92%E7%AD%96%2F%2F%20%EF%BC%8C%E8%90%BD%E8%A7%92%E5%9C%A8%E7%AA%9D%20%E4%B8%8D%E8%AF%A5%E6%88%91%E8%AF%B4%20%EF%BC%8C%E8%AF%B4%E7%9B%B4%E4%B8%80%E5%8D%B4%20%E6%88%91%E7%88%B1%E4%BD%A0%E8%AF%B4%E4%BD%A0%E8%BF%99%E4%B9%9F%E6%9C%89%E9%94%99%EF%BC%8C%E9%83%BD%E5%B0%B1%E4%BB%AC%E6%88%91%20%2F9dda%E6%8E%A0%E5%A4%BA%E3%80%82%3ECbDl%7C%2C9%237D%2C9%2DbEE%2C%2F2bA%2C9%2DFs%7CQyX7%5E%2C%20Ab%E9%83%BD%E5%88%A9%E6%9D%83%E7%9A%84%20%E4%B8%8D%20%EF%BC%8C%E6%AD%8C%E6%83%85b%2D%2CBb%E5%94%B1%E4%B8%8D%E6%88%911%3CB%2A%7CYYY%7C%2Cssu9bE%2Csus7bE%7C%2C7h%E5%A3%B0%E5%98%B6%E5%8A%9B%E7%AB%AD%E7%9A%84BsZLCbAZL9%E7%A2%8E%E7%9A%84%E6%97%B6%E5%88%BB%2F6%2DbDl%3E%E3%80%82%E5%88%BB%E6%97%B6%E7%9A%84%E4%BD%A0%E8%A6%81%E9%9C%80%E6%88%91%E6%8F%90%E7%A4%BA%E6%9D%A5%20%E6%AD%8C%E6%83%85%E7%9A%84%E7%AB%AD%E5%8A%9B%E5%98%B6%E5%A3%B0%E8%A6%81%E4%B8%8D%E6%88%912%2F%20Eb7b%E5%BF%83%E6%9C%89%E6%B2%A1%E7%A4%BA%E8%A1%A8%E5%86%85%E6%88%91%20%E5%BE%97%E6%99%93%7CDb%2D6%E6%84%88%20%E5%89%B2%E5%AE%B0%E4%BB%BB%E5%8F%A3%E4%BC%A4%E5%BC%80%E6%91%8A%E6%9B%BE%E4%B8%8D%E6%88%911%3C%7CYQyX%5EbAZL9b7bE%20%E5%90%88%20%E5%B0%B1%E6%97%A0%E4%BA%BAQyX9%5E7F%207%2D2%E8%A1%A8%E9%9D%A2%E9%95%87%E5%AE%9A7bE%206%2DbD%3E%E4%BD%95%E4%B8%BA%E7%9F%A5%E4%B8%8D%E6%88%91%E5%BE%97%20%E6%87%82%E4%BD%A0%E8%A6%81%E6%98%AF%20%E8%80%8C%E5%8F%8D%20%E8%89%B2%E6%8A%A4%E4%BF%9D%E6%98%AF%E4%B8%8D%E5%B9%B6b9LZC%2F%2F%E6%8A%98%E6%8C%AB%E5%BF%83%E7%9A%84%E5%90%91%E5%A4%96%20%EF%BC%8Cb%5E7%20E%E8%80%85%E6%82%A3%E7%8B%AC%E5%AD%A4%E4%B8%AA%E5%83%8F%E6%B4%BB%3CYY%7C%2C9%23F7%2C9Fs%20%2BEZLsus9b%20%E8%87%AA%E6%88%91%E6%8B%89%E6%89%AFDZL9bddabA%E6%9C%89%E4%BD%95%E4%B8%8D%E5%8F%AF%E3%80%827%5EbD1NZL7F%20%5EbALZ%2C9b7bE%20%2C7%2DbBl%3E%20nLZs%20%E8%80%85%E6%82%A3%E7%8B%AC%E5%AD%A4ZLsus%2CF7LZ%2DbB2N%7DQyXbE%2F9dadbD%7CQyX%2CE%2F2bAlY7%20Eb7%5EbG%2C97%2DA%7CQyQ%7C%2ACG%7CQyX7%2D%23F%7CQyX7%23%2DG%7CQyX7%2D%23F%3E%E2%80%A6%E2%80%A6%E5%93%A6%3C%23%2D7XyX7%5EbAs7bElZC%5E%20D%2C7%2DF%20%2C7%2D%23F%2C7%2DG7%2C%2DbAs%20%2C7%2DAlZLhbE%2D7%2C%7CL7%2DB%20bE%207%2Db7b9L%E8%AE%A4%E8%A6%81%E9%9C%80%E8%80%85%E6%82%A3%E7%8B%AC%E5%AD%A4%E7%9A%84%E5%90%91%E5%A4%96%3C3NZQLyXs%3Esrab01%3CB%2AZ%E5%8F%AF%3ElBbE%20%2Csu7%2DEs%20ZAb%5E7%2C7%2DbG%2C7%2DbAs%20%5EAo%3Ertuo%3C3ND%2AZL%20f%20%7ClF%5E%2CLsus7%2CD%2D7%2C%7ClC%5E%2C%20Bb%5ELZAb%5EXyQ%5D%20=Pop%2DFunk=77=0"))
+}
 </script>
 </body>
 </html>
