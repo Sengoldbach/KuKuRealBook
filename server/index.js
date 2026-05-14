@@ -5,7 +5,7 @@ const path         = require('path')
 const app = express()
 
 app.set('trust proxy', 1)
-app.use(express.json())
+app.use(express.json({ limit: '100kb' }))
 app.use(cookieParser())
 
 app.use('/api/auth',  require('./routes/auth'))

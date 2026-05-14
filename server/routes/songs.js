@@ -109,6 +109,10 @@ router.get('/:id', optionalAuth, (req, res) => {
 router.post('/', requireAuth, (req, res) => {
   const { title, composer = '', style = '', key_sig = 'C', ireal_url, overwrite = false } = req.body
   if (!title || !ireal_url) return res.status(400).json({ error: '缺少必填字段' })
+  if (title.length > 200)     return res.status(400).json({ error: '曲名过长（最多200字符）' })
+  if (composer.length > 200)  return res.status(400).json({ error: '作曲者过长（最多200字符）' })
+  if (style.length > 100)     return res.status(400).json({ error: '风格过长（最多100字符）' })
+  if (ireal_url.length > 60000) return res.status(400).json({ error: '谱子数据过大' })
 
   // 找或创建 song 记录
   let song = db.prepare(
@@ -195,6 +199,7 @@ router.delete('/:songId/versions/:versionId', requireAuth, (req, res) => {
 router.post('/:id/comments', requireAuth, (req, res) => {
   const { content } = req.body
   if (!content?.trim()) return res.status(400).json({ error: '评论不能为空' })
+  if (content.length > 500) return res.status(400).json({ error: '评论过长（最多500字符）' })
   const r = db.prepare(
     'INSERT INTO comments (song_id, user_id, content) VALUES (?,?,?)'
   ).run(req.params.id, req.user.id, content.trim())

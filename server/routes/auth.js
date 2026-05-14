@@ -8,8 +8,11 @@ router.post('/register', async (req, res) => {
   const { username, email, password } = req.body
   if (!username || !email || !password)
     return res.status(400).json({ error: '请填写所有字段' })
+  if (username.length > 30)  return res.status(400).json({ error: '用户名过长（最多30字符）' })
+  if (email.length > 200)    return res.status(400).json({ error: '邮箱过长' })
   if (password.length < 6)
     return res.status(400).json({ error: '密码至少6位' })
+  if (password.length > 200) return res.status(400).json({ error: '密码过长' })
 
   try {
     const hash = await bcrypt.hash(password, 10)
