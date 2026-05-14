@@ -2,10 +2,11 @@ const { Database: SqliteDB } = require('node-sqlite3-wasm')
 const path = require('path')
 const fs   = require('fs')
 
-const DB_PATH     = path.join(__dirname, '..', 'data', 'forum.db')
+const DATA_DIR    = process.env.DATA_DIR || path.join(__dirname, '..', 'data')
+const DB_PATH     = path.join(DATA_DIR, 'forum.db')
 const SCHEMA_PATH = path.join(__dirname, '..', 'schema.sql')
 
-fs.mkdirSync(path.dirname(DB_PATH), { recursive: true })
+fs.mkdirSync(DATA_DIR, { recursive: true })
 // 清理可能被强制终止的进程留下的 WAL 锁目录
 try { fs.rmSync(DB_PATH + '.lock', { recursive: true, force: true }) } catch {}
 

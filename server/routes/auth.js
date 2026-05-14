@@ -18,7 +18,7 @@ router.post('/register', async (req, res) => {
     )
     const result = stmt.run(username, email, hash)
     const token  = jwt.sign({ id: result.lastInsertRowid, username }, SECRET, { expiresIn: '30d' })
-    res.cookie('token', token, { httpOnly: true, maxAge: 30 * 24 * 3600 * 1000 })
+    res.cookie('token', token, { httpOnly: true, maxAge: 30 * 24 * 3600 * 1000, secure: process.env.NODE_ENV === 'production', sameSite: 'lax' })
     res.json({ username })
   } catch (e) {
     if (e.message.includes('UNIQUE'))
@@ -39,7 +39,7 @@ router.post('/login', async (req, res) => {
   if (!ok) return res.status(401).json({ error: '邮箱或密码错误' })
 
   const token = jwt.sign({ id: user.id, username: user.username }, SECRET, { expiresIn: '30d' })
-  res.cookie('token', token, { httpOnly: true, maxAge: 30 * 24 * 3600 * 1000 })
+  res.cookie('token', token, { httpOnly: true, maxAge: 30 * 24 * 3600 * 1000, secure: process.env.NODE_ENV === 'production', sameSite: 'lax' })
   res.json({ username: user.username })
 })
 

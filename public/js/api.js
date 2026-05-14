@@ -25,6 +25,7 @@ const API = {
   like:     (sid,vid)    => api('POST', `/songs/${sid}/versions/${vid}/like`),
   favorite: (id)         => api('POST', `/songs/${id}/favorite`),
   comment:  (id,content) => api('POST', `/songs/${id}/comments`, { content }),
+  deleteVersion: (sid,vid) => api('DELETE', `/songs/${sid}/versions/${vid}`),
   downloadUrl:  (sid,vid) => `/api/songs/${sid}/versions/${vid}/download`,
   previewUrl:   (sid,vid) => api('GET', `/songs/${sid}/versions/${vid}/preview-url`),
 

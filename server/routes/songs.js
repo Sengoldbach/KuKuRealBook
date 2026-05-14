@@ -130,7 +130,7 @@ router.post('/', requireAuth, (req, res) => {
       return res.json({ conflict: true, song_id: song.id, version_id: existing.id })
     }
     db.prepare(
-      'UPDATE versions SET style=?, key_sig=?, ireal_url=?, updated_at=datetime("now") WHERE id=?'
+      "UPDATE versions SET style=?, key_sig=?, ireal_url=?, updated_at=datetime('now') WHERE id=?"
     ).run(style, key_sig, ireal_url, existing.id)
     return res.json({ song_id: song.id, version_id: existing.id, updated: true })
   }
@@ -168,6 +168,27 @@ router.post('/:id/favorite', requireAuth, (req, res) => {
     db.prepare('INSERT INTO favorites (song_id, user_id) VALUES (?,?)').run(songId, userId)
     res.json({ favorited: true })
   }
+})
+
+// 删除自己的版本（若是最后一版则连 song 一起删）
+router.delete('/:songId/versions/:versionId', requireAuth, (req, res) => {
+  const version = db.prepare(
+    'SELECT * FROM versions WHERE id = ? AND song_id = ?'
+  ).get(req.params.versionId, req.params.songId)
+  if (!version) return res.status(404).json({ error: '版本不存在' })
+  if (version.user_id !== req.user.id) return res.status(403).json({ error: '无权删除' })
+
+  db.prepare('DELETE FROM likes    WHERE version_id = ?').run(version.id)
+  db.prepare('DELETE FROM versions WHERE id = ?').run(version.id)
+
+  const remaining = db.prepare('SELECT COUNT(*) as n FROM versions WHERE song_id = ?').get(req.params.songId)
+  if (remaining.n === 0) {
+    db.prepare('DELETE FROM favorites WHERE song_id = ?').run(req.params.songId)
+    db.prepare('DELETE FROM comments  WHERE song_id = ?').run(req.params.songId)
+    db.prepare('DELETE FROM songs     WHERE id = ?').run(req.params.songId)
+    return res.json({ deleted: true, songDeleted: true })
+  }
+  res.json({ deleted: true, songDeleted: false })
 })
 
 // 发评论

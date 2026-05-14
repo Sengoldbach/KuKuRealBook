@@ -2,10 +2,10 @@
 <html lang="zh">
 <head>
 <meta charset="utf-8">
-<title>用户主页 — iReal Forum</title>
+<title>用户主页 — KuKuReal 谱分享站</title>
 <style>
-* { box-sizing: border-box; }
-body { font-family: monospace; background: #1b2730; color: #e6e3da; margin: 0; font-size: 13px; }
+* { box-sizing: border-box; font-family: monospace; }
+body { background: #1b2730; color: #e6e3da; margin: 0; font-size: 13px; }
 header { display: flex; align-items: center; gap: 12px; padding: 10px 20px;
          background: #0d1a22; border-bottom: 1px solid #334; }
 header h1 { margin: 0; font-size: 16px; }
@@ -31,7 +31,7 @@ h3 { color: #94d5ff; font-size: 13px; margin: 0 0 10px;
 
 <header>
   <a class="back" href="/">← 返回</a>
-  <h1><a href="/">iReal Forum</a></h1>
+  <h1><a href="/">KuKuReal 谱分享站</a></h1>
 </header>
 
 <div class="container">
@@ -44,7 +44,7 @@ const username = new URLSearchParams(location.search).get('u')
 
 async function init() {
   const { user, versions } = await API.getUser(username)
-  document.title = `${user.username} — iReal Forum`
+  document.title = `${user.username} — KuKuReal 谱分享站`
 
   const cardsHtml = versions.map(v => `
     <div class="version-card" onclick="location.href='/song.html?id=${v.song_id}'">

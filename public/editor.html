@@ -2,12 +2,13 @@
 <html lang="zh">
 <head>
 <meta charset="utf-8">
-<title>编辑器 — iReal Forum</title>
+<title>编辑器 — KuKuReal 谱分享站</title>
 <style>
+* { box-sizing: border-box; font-family: monospace; }
 /* 顶部导航栏覆盖在 editor 上方 */
 #forum-nav {
   display: flex; align-items: center; gap: 10px; padding: 6px 12px;
-  background: #0a141c; border-bottom: 1px solid #223; font-family: monospace; font-size: 12px;
+  background: #0a141c; border-bottom: 1px solid #223; font-size: 12px;
 }
 #forum-nav a { color: #4af; text-decoration: none; }
 #forum-nav a:hover { text-decoration: underline; }
@@ -47,7 +48,7 @@
 <body>
 
 <div id="forum-nav">
-  <a href="/">← iReal Forum</a>
+  <a href="/">← KuKuReal 谱分享站</a>
   <span class="spacer"></span>
   <span id="nav-user"></span>
   <button id="publish-btn" onclick="openPublish()">发布谱子</button>
@@ -72,6 +73,19 @@
 <script>
 let currentUser = null
 
+// 如果 URL 带有 load_sid + load_vid，加载完 iframe 后把谱子注入编辑器
+;(function() {
+  const p = new URLSearchParams(location.search)
+  const sid = p.get('load_sid'), vid = p.get('load_vid')
+  if (!sid || !vid) return
+  document.getElementById('editor-frame').addEventListener('load', async () => {
+    try {
+      const { ireal_url } = await API.previewUrl(sid, vid)
+      document.getElementById('editor-frame').contentWindow.loadFromUrl(decodeURIComponent(ireal_url))
+    } catch(e) { console.warn('auto-load failed', e) }
+  })
+})()
+
 async function init() {
   const { user } = await API.me()
   currentUser = user
@@ -85,16 +99,9 @@ async function init() {
 }
 
 function getSongFromEditor() {
-  // 从 iframe 里的 editor 获取当前谱子数据
   try {
     const editorWin = document.getElementById('editor-frame').contentWindow
-    return {
-      title:     editorWin.song.title     || '',
-      composer:  editorWin.song.composer  || '',
-      style:     editorWin.song.style     || '',
-      key_sig:   editorWin.song.key       || 'C',
-      ireal_url: editorWin.buildIrealUrl(),
-    }
+    return editorWin.getPublishData()
   } catch {
     return null
   }
@@ -132,11 +139,9 @@ async function doPublish(overwrite) {
   try {
     const result = await API.publish({ ...song, overwrite })
     if (result.conflict) {
-      // 已有自己的版本，询问覆盖
       document.getElementById('modal-msg').textContent = '你已经发布过这首曲子的版本，是否覆盖？'
       document.getElementById('modal-actions').innerHTML = `
         <button class="btn-cancel"    onclick="closeModal()">取消</button>
-        <button class="btn-confirm"   onclick="doPublish(false)">追加新版本</button>
         <button class="btn-overwrite" onclick="doPublish(true)">覆盖我的版本</button>
       `
       return

@@ -2,10 +2,10 @@
 <html lang="zh">
 <head>
 <meta charset="utf-8">
-<title>帖子详情 — iReal Forum</title>
+<title>帖子详情 — KuKuReal 谱分享站</title>
 <style>
-* { box-sizing: border-box; }
-body { font-family: monospace; background: #1b2730; color: #e6e3da; margin: 0; font-size: 13px; }
+* { box-sizing: border-box; font-family: monospace; }
+body { background: #1b2730; color: #e6e3da; margin: 0; font-size: 13px; }
 header { display: flex; align-items: center; gap: 12px; padding: 10px 20px;
          background: #0d1a22; border-bottom: 1px solid #334; }
 header h1 { margin: 0; font-size: 16px; }
@@ -40,6 +40,9 @@ h3 { color: #94d5ff; font-size: 14px; margin: 24px 0 10px; border-bottom: 1px so
            border-radius: 3px; cursor: pointer; font-family: monospace; font-size: 12px;
            text-decoration: none; }
 .dl-btn:hover { background: #2a4a5e; }
+.del-btn { background: none; border: 1px solid #445; color: #666; padding: 3px 10px;
+           border-radius: 3px; cursor: pointer; font-size: 12px; }
+.del-btn:hover { border-color: #e53; color: #e53; }
 
 .preview-wrap { margin-top: 10px; overflow: hidden; border-radius: 3px; }
 
@@ -63,7 +66,7 @@ h3 { color: #94d5ff; font-size: 14px; margin: 24px 0 10px; border-bottom: 1px so
 
 <header>
   <a class="back" href="/">← 返回</a>
-  <h1><a href="/">iReal Forum</a></h1>
+  <h1><a href="/">KuKuReal 谱分享站</a></h1>
 </header>
 
 <div class="container">
@@ -71,7 +74,6 @@ h3 { color: #94d5ff; font-size: 14px; margin: 24px 0 10px; border-bottom: 1px so
 </div>
 
 <script src="/js/api.js"></script>
-<script src="/js/renderer.js"></script>
 <script>
 const songId = new URLSearchParams(location.search).get('id')
 let currentUser = null
@@ -106,11 +108,12 @@ function render() {
             ♥ ${v.likes}
           </button>
           <a class="dl-btn" href="${API.downloadUrl(songId, v.id)}" download>下载</a>
+          ${currentUser && currentUser.id === v.user_id
+            ? `<button class="del-btn" onclick="deleteVersion(${v.id})">删除</button>`
+            : ''}
         </div>
       </div>
-      <div class="preview-wrap" id="preview-${v.id}">
-        <div class="loading" style="padding:16px">预览加载中…</div>
-      </div>
+      <a class="dl-btn" href="/editor.html?load_sid=${songId}&load_vid=${v.id}" style="margin-top:10px;display:inline-block">${esc(song.title)}${song.composer ? ' - ' + esc(song.composer) : ''}</a>
     </div>`
   }).join('')
 
@@ -141,29 +144,6 @@ function render() {
     <div id="comments-list" style="margin-top:12px">${commentsHtml}</div>
   `
 
-  // 渲染每个版本的小图预览（需要服务器返回 ireal_url 的替代方案：先占位，未来实现）
-  versions.forEach(v => renderPreview(v))
-}
-
-async function renderPreview(v) {
-  const el = document.getElementById(`preview-${v.id}`)
-  if (!el) return
-  try {
-    const { ireal_url } = await API.previewUrl(data.song.id, v.id)
-    const wrap = document.createElement('div')
-    wrap.style.cssText = 'overflow:hidden;max-height:160px;position:relative;'
-    const inner = document.createElement('div')
-    wrap.appendChild(inner)
-    el.innerHTML = ''
-    el.appendChild(wrap)
-    renderChart(inner, ireal_url, { scale: 0.38 })
-    // 遮罩渐隐底部
-    const fade = document.createElement('div')
-    fade.style.cssText = 'position:absolute;bottom:0;left:0;right:0;height:40px;background:linear-gradient(transparent,#0d1a22);'
-    wrap.appendChild(fade)
-  } catch {
-    el.innerHTML = '<div style="padding:8px;color:#334;font-size:11px">预览不可用</div>'
-  }
 }
 
 async function toggleLike(versionId, btn) {
@@ -179,6 +159,13 @@ async function toggleFav() {
   if (!currentUser) { location.href = '/login.html'; return }
   const { favorited } = await API.favorite(songId)
   document.getElementById('fav-btn').textContent = favorited ? '★ 已收藏' : '☆ 收藏'
+}
+
+async function deleteVersion(versionId) {
+  if (!confirm('确定删除这个版本？')) return
+  const { songDeleted } = await API.deleteVersion(songId, versionId)
+  if (songDeleted) { location.href = '/'; return }
+  await loadSong()
 }
 
 async function submitComment() {
