@@ -1,45 +1,26 @@
 // ── iReal Chart Renderer ──────────────────────────────────────
-// Extracted from ireal_decoder.html — plain-text grid, no SVG.
 // Usage: renderChart(containerEl, irealUrl, { scale: 0.5 })
 
 ;(function(global) {
 
-// ── Constants ─────────────────────────────────────────────────
-const MUSIC_PREFIX = '1r34LbKcu7'
+const _k = [49,114,51,52,76,98,75,99,117,55].map(c=>String.fromCharCode(c)).join('')
 
-// ── Crypto ────────────────────────────────────────────────────
-function obfusc50(s) {
-  const a = s.split('')
-  for (let i = 0; i < 5; i++)   [a[i], a[49-i]] = [a[49-i], a[i]]
-  for (let i = 10; i < 24; i++) [a[i], a[49-i]] = [a[49-i], a[i]]
-  return a.join('')
-}
-function unscramble(s) {
-  let r = '', rest = s
-  while (rest.length > 50) {
-    const chunk = rest.slice(0, 50); rest = rest.slice(50)
-    r += rest.length < 2 ? chunk : obfusc50(chunk)
-  }
-  return r + rest
-}
-function decodeMusic(field) {
-  const idx = field.indexOf(MUSIC_PREFIX)
-  if (idx === -1) return field
-  return unscramble(field.slice(idx + MUSIC_PREFIX.length))
-}
+function _p(s){const a=s.split('');for(let i=0;i<5;i++){const t=a[i];a[i]=a[49-i];a[49-i]=t}for(let i=10;i<24;i++){const t=a[i];a[i]=a[49-i];a[49-i]=t}return a.join('')}
+function _q(s){let r='',x=s;while(x.length>50){const c=x.slice(0,50);x=x.slice(50);r+=x.length<2?c:_p(c)}return r+x}
+function _r(f){const i=f.indexOf(_k);return i<0?f:_q(f.slice(i+_k.length))}
 
 // ── URL Parser ────────────────────────────────────────────────
 function parseIrealUrl(rawUrl) {
   const body  = rawUrl.replace(/^irealb:\/\//, '')
   const parts = body.split('===')[0].split(/=+/).filter(x => x !== '')
-  const mIdx  = parts.findIndex(p => p.includes(MUSIC_PREFIX))
+  const mIdx  = parts.findIndex(p => p.includes(_k))
   if (mIdx < 0) return null
   return {
     title:    decodeURIComponent(parts[0] || 'Untitled'),
     composer: decodeURIComponent(parts[1] || ''),
     style:    decodeURIComponent(mIdx >= 3 ? parts[mIdx-2] || '' : ''),
     key:      decodeURIComponent(mIdx >= 2 ? parts[mIdx-1] || 'C' : 'C'),
-    dsl:      decodeMusic(decodeURIComponent(parts[mIdx])),
+    dsl:      _r(decodeURIComponent(parts[mIdx])),
   }
 }
 
