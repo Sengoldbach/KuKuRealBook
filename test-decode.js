@@ -14,7 +14,7 @@ parts.forEach((p, i) => console.log(`[${i}] ${p.slice(0, 80)}${p.length > 80 ? '
 
 // 3. 解密函数
 function decode(s) {
-  let result = ''
+  let resellult = ''
   for (let i = 0; i < s.length; i += 50) {
     const chunk = s.slice(i, i + 50)
     result += chunk.length === 50 ? chunk.slice(25) + chunk.slice(0, 25) : chunk
