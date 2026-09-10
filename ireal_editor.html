@@ -779,8 +779,7 @@ function repBarlineSVG(type) {
 }
 
 function makeRightBarlineHtml(btype) {
-  if (btype === 'single')    return '<span class="br single"></span>'
-  if (btype === 'double')    return '<span class="br double"></span>'
+  if (btype === 'rdouble')   return '<span class="br double"></span>'
   if (btype === 'rep-close') return `<span class="br rep-close" style="left:calc(100% - ${REP_W}px)">${repBarlineSVG('rep-close')}</span>`
   if (btype === 'final')     return `<span class="br final"     style="left:calc(100% - ${FIN_W}px)">${repBarlineSVG('final')}</span>`
   return ''
@@ -880,9 +879,9 @@ function render() {
     }
     if (t.barline && t.cells === 0) {
       const prev = findLastCell()
-      // rep-close/final 语义上属于前一格右侧，不进 pendingBarlineLeft
-      const rightOwned = t.barlineType === 'rep-close' || t.barlineType === 'final'
-      if (prev) {
+      // rep-close / final / rdouble 属于前一格右侧；single / double / rep-open 属于下一格左侧
+      const rightOwned = t.barlineType === 'rep-close' || t.barlineType === 'final' || t.barlineType === 'rdouble'
+      if (rightOwned && prev) {
         prev.brHtml = makeRightBarlineHtml(t.barlineType)
       }
       if (!rightOwned) pendingBarlineLeft = t.barlineType
