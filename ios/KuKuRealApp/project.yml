@@ -1,0 +1,40 @@
+name: KuKuReal
+options:
+  bundleIdPrefix: com.kukureal
+  deploymentTarget:
+    iOS: "16.0"
+  createIntermediateGroups: true
+
+packages:
+  KuKuRealCore:
+    path: ../KuKuRealCore
+
+targets:
+  KuKuReal:
+    type: application
+    platform: iOS
+    sources:
+      - path: KuKuReal
+    dependencies:
+      - package: KuKuRealCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.kukureal.app
+        SWIFT_VERSION: "5.0"
+        TARGETED_DEVICE_FAMILY: "1,2"
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
+        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
+        MARKETING_VERSION: "0.1"
+        CURRENT_PROJECT_VERSION: "1"
+
+schemes:
+  KuKuReal:
+    build:
+      targets:
+        KuKuReal: all
+    run:
+      config: Debug
+    test:
+      config: Debug
